@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { motion } from "framer-motion";
 import { BookOpen, AlertCircle } from "lucide-react";
@@ -8,7 +8,7 @@ import Button from "../UI/Button";
 // Define staticBlogs locally to avoid circular dependency
 const staticBlogs = [
   {
-    id: "100",
+    id: "110",
     title: "Top 5 HVAC Maintenance Tips",
     content:
       "Learn how to keep your HVAC system running smoothly with these expert tips.",
@@ -16,7 +16,7 @@ const staticBlogs = [
     created_at: "2025-08-01T10:00:00Z",
   },
   {
-    id: "102",
+    id: "112",
     title: "Why Regular Refrigeration Maintenance Matters",
     content:
       "Discover the benefits of routine maintenance for your commercial refrigeration systems.",
@@ -24,14 +24,14 @@ const staticBlogs = [
     created_at: "2025-07-15T12:00:00Z",
   },
   {
-    id: "103",
+    id: "113",
     title: "Case Study: Saving Costs with Preventive Maintenance",
     content: "See how FacilityPro helped a restaurant save thousands annually.",
     author: "Admin",
     created_at: "2025-06-30T09:00:00Z",
   },
   {
-    id: "104",
+    id: "114",
     title: "Energy Efficiency in Commercial Cooling",
     content: "Tips to reduce energy costs with efficient cooling systems.",
     author: "Admin",
@@ -49,23 +49,29 @@ function BlogSection({ limit = 3 }) {
 
   useEffect(() => {
     const fetchBlogs = async () => {
+      setLoading(true);
+      setError(""); // Reset error state
       try {
         const data = await apiService.getPublicBlogs();
         console.log("Fetched blogs:", data);
 
-        let combinedBlogs = [...data];
-        if (data.length < limit) {
-          const existingIds = new Set(data.map((blog) => blog.id));
+        // Ensure data is an array
+        const apiBlogs = Array.isArray(data) ? data : [];
+
+        // Combine with staticBlogs if needed
+        let combinedBlogs = [...apiBlogs];
+        if (apiBlogs.length < limit) {
+          const existingIds = new Set(apiBlogs.map((blog) => blog.id));
           const additionalBlogs = staticBlogs
             .filter((blog) => !existingIds.has(blog.id))
-            .slice(0, limit - data.length);
-          combinedBlogs = [...data, ...additionalBlogs];
+            .slice(0, limit - apiBlogs.length);
+          combinedBlogs = [...apiBlogs, ...additionalBlogs];
         }
 
         setAllBlogs(combinedBlogs);
-        setError("");
       } catch (err) {
         console.error("Blog fetch error:", err);
+        // Fallback to staticBlogs on error
         setAllBlogs([...staticBlogs]);
         setError(err.message || "Failed to fetch blogs");
       } finally {
