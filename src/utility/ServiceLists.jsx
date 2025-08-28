@@ -1,5 +1,5 @@
 import HVAC from "../assets/images/services/HVAC.png"
-import Cooler from "../assets/images/services/cooler.png"
+import Cooler from "../assets/images/services/Cooler.png"
 import Fridge from "../assets/images/services/fridge.png"
 export const ServiceList=[
               {
