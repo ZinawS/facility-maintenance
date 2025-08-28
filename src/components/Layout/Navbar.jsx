@@ -198,7 +198,7 @@ const NavBar = memo(() => {
                 </Link>
               )}
 
-              <motion.button
+              {/* <motion.button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300"
                 whileHover={{ scale: 1.1, rotate: 15 }}
@@ -212,17 +212,17 @@ const NavBar = memo(() => {
                 ) : (
                   <Moon className="w-5 h-5" />
                 )}
-              </motion.button>
+              </motion.button> */}
 
               {/* Emergency Contact */}
-              <a
+              {/* <a
                 href="tel:+18009876543"
                 className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md"
                 aria-label="Emergency Contact"
               >
                 <Phone className="w-5 h-5" />
                 <span className="hidden xl:inline">Emergency</span>
-              </a>
+              </a> */}
             </div>
           </div>
 
@@ -299,7 +299,7 @@ const NavBar = memo(() => {
                   </Link>
                 )}
 
-                <motion.button
+                {/* <motion.button
                   onClick={toggleTheme}
                   className="flex items-center space-x-3 py-4 text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light transition-colors duration-300 w-full text-left"
                 >
@@ -318,7 +318,7 @@ const NavBar = memo(() => {
                 >
                   <Phone className="w-5 h-5" />
                   <span>Emergency Contact</span>
-                </a>
+                </a> */}
               </div>
             </motion.div>
           )}
