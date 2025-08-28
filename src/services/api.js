@@ -2,9 +2,8 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 const api = axios.create({
-  // baseURL: import.meta.env.VITE_API_URL,
-  baseURL: "https://one-stop-utility-service.netlify.app",
-
+  baseURL: import.meta.env.VITE_API_URL,
+  
   headers: { "Content-Type": "application/json" },
 });
 
@@ -264,7 +263,7 @@ const apiService = {
       throw new Error(err.response?.data?.message || "Failed to fetch blogs");
     }
   },
-  async getBlogs() {
+    async getBlogs() {
     try {
       const response = await api.get("/api/blogs");
       return response.data;

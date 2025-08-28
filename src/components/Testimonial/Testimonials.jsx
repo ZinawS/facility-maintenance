@@ -36,14 +36,14 @@ const Testimonials = () => {
   useEffect(() => {
     const fetchTestimonials = async () => {
       try {
-        const response = await apiService.getApprovedFeedback();
-        // Validate and transform API data
-        const validTestimonials = Array.isArray(response)
-          ? response.filter(
-              (item) => item && typeof item === "object" && item.quote && item.author
-            )
-          : [];
-        setTestimonials(validTestimonials.length > 0 ? validTestimonials : staticTestimonials);
+        // const response = await apiService.getApprovedFeedback();
+        // // Validate and transform API data
+        // const validTestimonials = Array.isArray(response)
+        //   ? response.filter(
+        //       (item) => item && typeof item === "object" && item.quote && item.author
+        //     )
+        //   : [];
+        setTestimonials( staticTestimonials);
         setError("");
       } catch (err) {
         console.error("Testimonials fetch error:", err);

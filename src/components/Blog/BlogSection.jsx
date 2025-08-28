@@ -52,23 +52,25 @@ function BlogSection({ limit = 3 }) {
       setLoading(true);
       setError(""); // Reset error state
       try {
-        const data = await apiService.getPublicBlogs();
-        console.log("Fetched blogs:", data);
+        // const data = await apiService.getPublicBlogs();
+        // console.log("Fetched blogs:", data);
 
-        // Ensure data is an array
-        const apiBlogs = Array.isArray(data) ? data : [];
+        // // Ensure data is an array
+        // const apiBlogs = Array.isArray(data) ? data : [];
 
-        // Combine with staticBlogs if needed
-        let combinedBlogs = [...apiBlogs];
-        if (apiBlogs.length < limit) {
-          const existingIds = new Set(apiBlogs.map((blog) => blog.id));
-          const additionalBlogs = staticBlogs
-            .filter((blog) => !existingIds.has(blog.id))
-            .slice(0, limit - apiBlogs.length);
-          combinedBlogs = [...apiBlogs, ...additionalBlogs];
-        }
+        // // Combine with staticBlogs if needed
+        // let combinedBlogs = [...apiBlogs];
+        // if (apiBlogs.length < limit) {
+        //   const existingIds = new Set(apiBlogs.map((blog) => blog.id));
+          // const additionalBlogs = staticBlogs
+            // .filter((blog) => !existingIds.has(blog.id))
+            // .slice(0, limit - apiBlogs.length);
+          // combinedBlogs = [...apiBlogs, ...additionalBlogs];
+          // combinedBlogs = [...additionalBlogs];
+        
 
-        setAllBlogs(combinedBlogs);
+        // setAllBlogs(combinedBlogs);
+        setAllBlogs([...staticBlogs]);
       } catch (err) {
         console.error("Blog fetch error:", err);
         // Fallback to staticBlogs on error
