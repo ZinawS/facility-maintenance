@@ -1,5 +1,5 @@
 import React, { useState, useContext, useMemo, memo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   motion,
   AnimatePresence,
@@ -18,7 +18,6 @@ import {
   Info,
   Sun,
   Moon,
-  ChevronDown,
   Phone,
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
@@ -30,13 +29,13 @@ const NavBar = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
   const [isDarkMode, setIsDarkMode] = useState(
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
+
   const { scrollY } = useScroll();
-  const backgroundOpacity = useTransform(scrollY, [0, 100], [0.85, 1]);
-  const backdropBlur = useTransform(scrollY, [0, 100], [4, 8]);
+  const backgroundOpacity = useTransform(scrollY, [0, 100], [0.6, 0.9]);
+  const backdropBlur = useTransform(scrollY, [0, 100], [8, 16]);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
 
@@ -115,82 +114,69 @@ const NavBar = memo(() => {
       animate="visible"
       variants={navVariants}
       style={{
-        backgroundOpacity,
+        backgroundColor: `rgba(20, 20, 20, ${backgroundOpacity.get()})`,
         backdropFilter: `blur(${backdropBlur.get()}px)`,
       }}
-      className="sticky top-0 z-50 text-white shadow-xl backdrop-blur-lg transition-colors duration-300 bg-gradient-to-r from-primary to-primary-dark border-b border-white/10"
+      className="sticky top-0 z-50 shadow-xl bg-gradient-to-r from-primary via-primary-dark to-primary rounded-b-3xl transition-colors duration-300 border-b border-white/10"
       role="navigation"
       aria-label="Main navigation"
     >
       <div className="container mx-auto px-4 sm:px-6 py-3">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <motion.a
-            href="/"
-            className="flex items-center space-x-3"
+          <Link
+            to="/"
+            className="flex items-center space-x-3 group"
             aria-label="One-Stop Utility Service Home"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
-            <motion.div
-              animate={{
-                scale: [1, 1.05, 1],
-                rotate: [0, 2, -2, 0],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="flex items-center justify-center"
-            >
-              {logo && (
-                <img
-                  src={logo}
-                  alt="One-Stop Utility Service Logo"
-                  className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
-                />
-              )}
-            </motion.div>
-            <span className="hidden sm:block text-xl font-bold">
+            <motion.img
+              src={logo}
+              alt="One-Stop Utility Service Logo"
+              className="w-12 h-12 sm:w-14 sm:h-14 object-contain rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300"
+              whileHover={{ rotate: 10 }}
+            />
+            <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
               One-Stop Utility Service
             </span>
-          </motion.a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-6">
-            {navItems.map((item) => (
-              <motion.a
+            {navItems.map((item, index) => (
+              <motion.div
                 key={item.path}
-                href={item.path}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 font-medium ${
-                  isActive(item.path)
-                    ? "bg-white/20 text-white"
-                    : "text-white/90 hover:text-white hover:bg-white/10"
-                }`}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label={item.label}
+                variants={menuItemVariants}
+                custom={index}
+                initial="hidden"
+                animate="visible"
               >
-                {item.icon}
-                <span>{item.label}</span>
-              </motion.a>
+                <Link
+                  to={item.path}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 font-medium shadow-sm ${
+                    isActive(item.path)
+                      ? "bg-white/20 text-white shadow-lg"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                  }`}
+                  aria-label={item.label}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              </motion.div>
             ))}
 
             {/* User Actions */}
             <div className="flex items-center space-x-4 ml-4 pl-4 border-l border-white/20">
               {user ? (
                 <>
-                  <motion.a
-                    href="/dashboard"
+                  <Link
+                    to="/dashboard"
                     className="flex items-center space-x-2 text-white/90 hover:text-white transition-colors duration-300"
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.95 }}
                     aria-label="Dashboard"
                   >
                     <User className="w-5 h-5" />
                     <span className="hidden xl:inline">Dashboard</span>
-                  </motion.a>
+                  </Link>
                   <motion.button
                     onClick={handleLogout}
                     className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md"
@@ -203,15 +189,13 @@ const NavBar = memo(() => {
                   </motion.button>
                 </>
               ) : (
-                <motion.a
-                  href="/login"
+                <Link
+                  to="/login"
                   className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-md font-semibold"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
                   aria-label="Login"
                 >
                   Login
-                </motion.a>
+                </Link>
               )}
 
               <motion.button
@@ -231,16 +215,14 @@ const NavBar = memo(() => {
               </motion.button>
 
               {/* Emergency Contact */}
-              <motion.a
+              <a
                 href="tel:+18009876543"
                 className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
                 aria-label="Emergency Contact"
               >
                 <Phone className="w-5 h-5" />
                 <span className="hidden xl:inline">Emergency</span>
-              </motion.a>
+              </a>
             </div>
           </div>
 
@@ -268,91 +250,58 @@ const NavBar = memo(() => {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="lg:hidden mt-4 rounded-xl shadow-2xl p-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-white/10"
+              className="lg:hidden mt-4 rounded-xl shadow-2xl p-6 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/10"
             >
               {navItems.map((item, index) => (
-                <motion.a
+                <Link
                   key={item.path}
-                  href={item.path}
-                  custom={index}
-                  variants={menuItemVariants}
+                  to={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center space-x-3 py-4 text-lg font-medium transition-colors duration-300 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
                     isActive(item.path)
                       ? "text-primary dark:text-primary-light"
                       : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light"
                   }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label={item.label}
                 >
                   {item.icon}
                   <span>{item.label}</span>
-                </motion.a>
+                </Link>
               ))}
-
-              {/* Dropdown items in mobile */}
-              {/* {dropdownItems.map((item, index) => (
-                <motion.a
-                  key={item.path}
-                  href={item.path}
-                  custom={navItems.length + index}
-                  variants={menuItemVariants}
-                  className="flex items-center space-x-3 py-4 text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light transition-colors duration-300 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label={item.label}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </motion.a>
-              ))} */}
 
               {/* User section in mobile */}
               <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
                 {user ? (
                   <>
-                    <motion.a
-                      href="/dashboard"
-                      custom={navItems.length}
-                      variants={menuItemVariants}
-                      className="flex items-center space-x-3 py-4 text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light transition-colors duration-300"
+                    <Link
+                      to="/dashboard"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      aria-label="Dashboard"
+                      className="flex items-center space-x-3 py-4 text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light transition-colors duration-300"
                     >
                       <User className="w-5 h-5" />
                       <span>Dashboard</span>
-                    </motion.a>
+                    </Link>
                     <motion.button
-                      custom={navItems.length + 1}
-                      variants={menuItemVariants}
                       onClick={handleLogout}
                       className="flex items-center space-x-3 py-4 text-lg font-medium text-red-600 hover:text-red-700 transition-colors duration-300 w-full text-left"
-                      aria-label="Logout"
                     >
                       <LogOut className="w-5 h-5" />
                       <span>Logout</span>
                     </motion.button>
                   </>
                 ) : (
-                  <motion.a
-                    href="/login"
-                    custom={navItems.length}
-                    variants={menuItemVariants}
-                    className="flex items-center space-x-3 py-4 text-lg font-medium text-primary dark:text-primary-light hover:text-primary/80 dark:hover:text-primary-light/80 transition-colors duration-300"
+                  <Link
+                    to="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    aria-label="Login"
+                    className="flex items-center space-x-3 py-4 text-lg font-medium text-primary dark:text-primary-light hover:text-primary/80 dark:hover:text-primary-light/80 transition-colors duration-300"
                   >
                     <User className="w-5 h-5" />
                     <span>Login</span>
-                  </motion.a>
+                  </Link>
                 )}
 
                 <motion.button
-                  custom={navItems.length + (user ? 2 : 1)}
-                  variants={menuItemVariants}
                   onClick={toggleTheme}
                   className="flex items-center space-x-3 py-4 text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light transition-colors duration-300 w-full text-left"
-                  aria-label={
-                    isDarkMode ? "Switch to light mode" : "Switch to dark mode"
-                  }
                 >
                   {isDarkMode ? (
                     <Sun className="w-5 h-5" />
@@ -362,17 +311,14 @@ const NavBar = memo(() => {
                   <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
                 </motion.button>
 
-                <motion.a
+                <a
                   href="tel:+18009876543"
-                  custom={navItems.length + (user ? 3 : 2)}
-                  variants={menuItemVariants}
                   className="flex items-center space-x-3 py-4 text-lg font-medium text-red-600 hover:text-red-700 transition-colors duration-300"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label="Emergency Contact"
                 >
                   <Phone className="w-5 h-5" />
                   <span>Emergency Contact</span>
-                </motion.a>
+                </a>
               </div>
             </motion.div>
           )}
