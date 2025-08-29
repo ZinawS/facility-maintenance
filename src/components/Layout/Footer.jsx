@@ -9,6 +9,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import {address, email, phone, workingHours} from "../../utility/constant"
+import {Link} from "react-router-dom"
 
 /**
  * Footer component for One-Stop Utility Service application
@@ -85,15 +86,15 @@ function Footer() {
                 variants={itemVariants}
                 custom={index + 2}
               >
-                <a
-                  href={link.path}
+                <Link 
+                  to={link.path}
                   className="flex items-center space-x-2 text-lg font-medium text-gray-200 hover:text-teal-300 transition-colors duration-300 relative group"
                   aria-label={link.label}
                 >
                   {link.icon}
                   <span>{link.label}</span>
                   <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-teal-300 transition-all duration-500 group-hover:w-full"></span>
-                </a>
+                </Link>
               </motion.li>
             ))}
           </ul>
