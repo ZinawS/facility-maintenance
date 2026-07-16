@@ -57,8 +57,21 @@ Once logged in as an admin (`role = 'admin'` in the `users` table), the Dashboar
 
 Stripe PaymentIntents are created server-side only from a catalog reference (`service_plans`/`parts` id) or a bounded custom amount — the client never dictates the charged amount. Configure `STRIPE_WEBHOOK_SECRET` (e.g. via `stripe listen` locally) so payment status updates automatically from Stripe events.
 
+## Deploying with Docker
+
+The whole stack (MySQL + server + client) runs with one command on any Docker host — a VPS, Railway, Render, Fly.io, etc.
+
+```
+cp .env.example .env   # fill in JWT_SECRET, Stripe keys, etc.
+docker compose up -d --build
+```
+
+This builds `server/Dockerfile` and `client/Dockerfile` (multi-stage, served via Nginx), starts MySQL with `server/db/schema.sql` auto-applied on first boot via `docker-entrypoint-initdb.d`, and persists both the database and `server/uploads/` in named volumes. The client is on `:8080`, the API on `:4000`.
+
+Note `VITE_API_URL` in `.env.example` must be the URL the **browser** will use to reach the API — if you deploy behind a real domain, set it to that domain before building, not `localhost`.
+
 ## Maintenance
 
 - Update dependencies regularly with `npm outdated` / `npm update` in each of `client/` and `server/`.
-- `server/db/schema.sql` is the source of truth for the database — update it alongside any new query, and re-apply to a fresh dev database to confirm it stays valid.
-- Deploy the frontend as a static build (`npm run build` in `client/`) and the backend as a standard Node process; both need their own `.env` in production.
+- `server/db/schema.sql` is the source of truth for the database — update it alongside any new query, and re-apply to a fresh dev database to confirm it stays valid. Changes to a database that's already running in production go in `server/db/migrations/` instead (see the existing files there for the pattern).
+- Outside Docker: deploy the frontend as a static build (`npm run build` in `client/`) and the backend as a standard Node process; both need their own `.env` in production.

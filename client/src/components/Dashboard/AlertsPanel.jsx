@@ -28,7 +28,6 @@ function AlertsPanel({ onCountChange }) {
     try {
       const { items: alertItems } = await apiService.getAlerts();
       setItems(alertItems);
-      onCountChange?.(alertItems.length);
       setError("");
     } catch (err) {
       setError(err.message || "Failed to load alerts");
@@ -42,12 +41,18 @@ function AlertsPanel({ onCountChange }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Report the count up to AdminDashboard (for the tab badge) as a side
+  // effect of `items` changing, rather than from inside a setState updater
+  // — calling a parent setter there runs during React's render phase and
+  // triggers "Cannot update a component while rendering a different
+  // component".
+  useEffect(() => {
+    onCountChange?.(items.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   const removeItem = (id, type) => {
-    setItems((prev) => {
-      const next = prev.filter((item) => !(item.id === id && item.type === type));
-      onCountChange?.(next.length);
-      return next;
-    });
+    setItems((prev) => prev.filter((item) => !(item.id === id && item.type === type)));
   };
 
   const handleMarkRead = async (item) => {
