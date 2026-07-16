@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Users, Ban } from "lucide-react";
 import Button from "../UI/Button";
+import EmptyState from "../UI/EmptyState";
+import apiService from "../../services/api";
 
 /**
  * UserManagement component for managing user roles and ban status
@@ -70,6 +72,7 @@ function UserManagement({ users, setUsers, setSuccess, setError }) {
         <Users className="w-6 h-6" />
         <span>User Management</span>
       </h3>
+      {users.length === 0 && <EmptyState message="No users yet." />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {users.map((user, index) => (
           <motion.div

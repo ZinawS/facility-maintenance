@@ -1,6 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
 import apiService from "../services/api";
 
 /**
@@ -20,36 +19,26 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const token = localStorage.getItem("token");
-      if (token && apiService.isAuthenticated()) {
-        try {
-          const decoded = jwtDecode(token);
-          setUser({
-            id: decoded.id,
-            name: decoded.email.split("@")[0],
-            email: decoded.email,
-            role: decoded.role,
-          });
-        } catch (err) {
-          console.error("Error decoding token:", err);
-          localStorage.removeItem("token");
-          setUser(null);
-        }
+    if (apiService.isAuthenticated()) {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+        if (storedUser) setUser(storedUser);
+      } catch {
+        localStorage.removeItem("user");
       }
-      setLoading(false);
-    };
-    initializeAuth();
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     const handleUnauthorized = (e) => {
-      if (
-        e.detail?.message === "User logged out" ||
-        e.detail?.message === "Token expired"
-      ) {
+      if (e.detail?.message === "User logged out" || e.detail?.message === "Token expired") {
         setUser(null);
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         navigate("/login");
       }
     };
@@ -57,9 +46,5 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener("unauthorized", handleUnauthorized);
   }, [navigate]);
 
-  return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, setUser, loading }}>{children}</AuthContext.Provider>;
 };

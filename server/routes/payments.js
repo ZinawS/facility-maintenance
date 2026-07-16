@@ -1,0 +1,151 @@
+const express = require("express");
+const Stripe = require("stripe");
+const { body } = require("express-validator");
+const asyncHandler = require("../middleware/asyncHandler");
+const handleValidation = require("../middleware/handleValidation");
+const { optionalAuth } = require("../middleware/auth");
+const env = require("../config/env");
+const logger = require("../config/logger");
+
+const stripe = Stripe(env.stripe.secretKey);
+
+const router = express.Router();
+const webhookRouter = express.Router();
+
+const MIN_CUSTOM_AMOUNT_CENTS = 100; // $1
+const MAX_CUSTOM_AMOUNT_CENTS = 5_000_000; // $50,000
+const MAX_PART_QUANTITY = 50;
+
+/**
+ * Never trust a client-supplied `amount`. Compute it server-side from the
+ * plan/part the client references, so the checkout total can't be tampered
+ * with. `custom` is the one deliberate exception, for ad-hoc quotes/deposits
+ * that don't map to a catalog item — it's bounded and always requires a
+ * human-readable description so it's easy to audit in the payments list.
+ */
+router.post(
+  "/create",
+  optionalAuth,
+  [
+    body("kind").isIn(["plan", "part", "custom"]).withMessage("kind must be plan, part, or custom"),
+    body("planId")
+      .if((value, { req }) => req.body.kind === "plan")
+      .isInt()
+      .withMessage("planId is required"),
+    body("partId")
+      .if((value, { req }) => req.body.kind === "part")
+      .isInt()
+      .withMessage("partId is required"),
+    body("quantity")
+      .if((value, { req }) => req.body.kind === "part")
+      .optional()
+      .isInt({ min: 1, max: MAX_PART_QUANTITY })
+      .withMessage(`quantity must be between 1 and ${MAX_PART_QUANTITY}`),
+    body("amount")
+      .if((value, { req }) => req.body.kind === "custom")
+      .isInt({ min: MIN_CUSTOM_AMOUNT_CENTS, max: MAX_CUSTOM_AMOUNT_CENTS })
+      .withMessage("amount (in cents) is out of the allowed range"),
+    body("description")
+      .if((value, { req }) => req.body.kind === "custom")
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 255 })
+      .withMessage("description is required for a custom payment"),
+  ],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const { kind } = req.body;
+    let amount;
+    let description;
+    let planId = null;
+    let partId = null;
+    let quantity = null;
+
+    if (kind === "plan") {
+      const [plans] = await req.db.query(
+        "SELECT * FROM service_plans WHERE id = ? AND is_active = 1",
+        [req.body.planId]
+      );
+      const plan = plans[0];
+      if (!plan) return res.status(404).json({ message: "Plan not found" });
+      if (plan.price_cents === null) {
+        return res.status(400).json({ message: "This plan requires a custom quote — please contact us" });
+      }
+      planId = plan.id;
+      amount = plan.price_cents;
+      description = `Service Plan: ${plan.name}`;
+    } else if (kind === "part") {
+      quantity = req.body.quantity || 1;
+      const [parts] = await req.db.query("SELECT * FROM parts WHERE id = ? AND is_active = 1", [
+        req.body.partId,
+      ]);
+      const part = parts[0];
+      if (!part) return res.status(404).json({ message: "Part not found" });
+      partId = part.id;
+      amount = part.price_cents * quantity;
+      description = `${quantity} x ${part.name}`;
+    } else {
+      amount = req.body.amount;
+      description = req.body.description;
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: "usd",
+      description,
+      payment_method_types: ["card"],
+      metadata: { kind, planId: planId ?? "", partId: partId ?? "", userId: req.user?.id ?? "" },
+    });
+
+    await req.db.query(
+      `INSERT INTO payments
+        (user_id, stripe_payment_intent_id, plan_id, part_id, quantity, amount, currency, description, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'usd', ?, 'pending')`,
+      [req.user?.id ?? null, paymentIntent.id, planId, partId, quantity, amount / 100, description]
+    );
+
+    res.status(201).json({ clientSecret: paymentIntent.client_secret });
+  })
+);
+
+webhookRouter.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  asyncHandler(async (req, res) => {
+    if (!env.stripe.webhookSecret) {
+      logger.warn("Stripe webhook received but STRIPE_WEBHOOK_SECRET is not configured");
+      return res.status(501).json({ message: "Webhook not configured" });
+    }
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        req.headers["stripe-signature"],
+        env.stripe.webhookSecret
+      );
+    } catch (err) {
+      logger.warn({ err }, "Stripe webhook signature verification failed");
+      return res.status(400).json({ message: `Webhook signature verification failed` });
+    }
+
+    const intent = event.data.object;
+    const statusByEvent = {
+      "payment_intent.succeeded": "succeeded",
+      "payment_intent.payment_failed": "failed",
+      "payment_intent.canceled": "canceled",
+    };
+    const nextStatus = statusByEvent[event.type];
+
+    if (nextStatus) {
+      await req.db.query(
+        "UPDATE payments SET status = ? WHERE stripe_payment_intent_id = ?",
+        [nextStatus, intent.id]
+      );
+    }
+
+    res.json({ received: true });
+  })
+);
+
+module.exports = { router, webhookRouter };

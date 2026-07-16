@@ -1,57 +1,41 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Video, Phone } from "lucide-react";
+import { BookOpen, Video } from "lucide-react";
+import apiService from "../services/api";
 import Button from "../components/UI/Button";
+import Spinner from "../components/UI/Spinner";
+import EmptyState from "../components/UI/EmptyState";
+
+const isDirectVideoFile = (url) => /\.(mp4|webm|ogg)$/i.test(url);
 
 /**
- * KnowledgeBase component for troubleshooting guides and video tutorials
- * @returns {JSX.Element} The rendered KnowledgeBase component
+ * Knowledge Base page, backed entirely by the admin-managed
+ * /api/public/knowledge-guides and /api/public/knowledge-videos resources.
  */
 function KnowledgeBase() {
-  const guides = [
-    {
-      title: "Walk-in Not Cooling? Check These 3 Things",
-      steps: [
-        "Inspect door gasket for proper seal",
-        "Check power supply and circuit breaker",
-        "Verify temperature settings",
-      ],
-    },
-    {
-      title: "How to Reset a Tripped HVAC Breaker",
-      steps: [
-        "Locate the breaker panel",
-        "Find the HVAC circuit",
-        "Reset the breaker to ON position",
-      ],
-    },
-  ];
+  const [guides, setGuides] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const videos = [
-    {
-      title: "How to Clean Condenser Coils",
-      url: "/assets/condenser-coil-video.mp4",
-    },
-    { title: "Testing Door Gasket Seal", url: "/assets/gasket-seal-video.mp4" },
-  ];
+  useEffect(() => {
+    Promise.all([apiService.getKnowledgeGuides(), apiService.getKnowledgeVideos()])
+      .then(([guideData, videoData]) => {
+        setGuides(guideData);
+        setVideos(videoData);
+      })
+      .catch((err) => setError(err.message || "Failed to load knowledge base"))
+      .finally(() => setLoading(false));
+  }, []);
 
-  // Animation variants for section entrance
   const sectionVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
   };
 
-  // Animation variants for cards
   const cardVariants = {
     hidden: { opacity: 0, x: -20 },
-    visible: (i) => ({
-      opacity: 1,
-      x: 0,
-      transition: { delay: i * 0.1, duration: 0.4, ease: "easeOut" },
-    }),
+    visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.1, duration: 0.4, ease: "easeOut" } }),
   };
 
   return (
@@ -59,97 +43,96 @@ function KnowledgeBase() {
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
-      className="container mx-auto px-6 py-12"
+      className="container mx-auto px-6 py-12 min-h-[60vh]"
       role="main"
       aria-label="Knowledge Base Page"
     >
-      <h1 className="text-4xl font-extrabold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500 flex items-center justify-center space-x-2">
-        <BookOpen className="w-8 h-8" />
+      <h1 className="text-4xl font-extrabold text-center mb-8 text-gray-800 dark:text-white flex items-center justify-center space-x-2">
+        <BookOpen className="w-8 h-8 text-primary" />
         <span>Knowledge Base</span>
       </h1>
 
-      <motion.section
-        variants={sectionVariants}
-        className="mb-12 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl p-6 border border-teal-500/20"
-      >
-        <h2 className="text-3xl font-semibold mb-4 text-teal-300 flex items-center space-x-2">
-          <BookOpen className="w-6 h-6" />
-          <span>Troubleshooting Guides</span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {guides.map((guide, index) => (
-            <motion.div
-              key={index}
-              variants={cardVariants}
-              custom={index}
-              className="p-6 bg-white rounded-lg shadow-lg hover:shadow-teal-500/20 transition-all duration-300 border border-gray-200"
-            >
-              <h3 className="text-xl font-semibold text-gray-800">
-                {guide.title}
-              </h3>
-              <ul className="list-disc mt-4 space-y-2 text-gray-600">
-                {guide.steps.map((step, i) => (
-                  <li key={i}>{step}</li>
+      {loading && <Spinner size="lg" />}
+      {error && <p className="text-red-500 text-center mb-8">{error}</p>}
+
+      {!loading && !error && (
+        <>
+          <section className="mb-12 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
+            <h2 className="text-2xl font-semibold mb-4 text-primary flex items-center space-x-2">
+              <BookOpen className="w-6 h-6" />
+              <span>Troubleshooting Guides</span>
+            </h2>
+            {guides.length === 0 ? (
+              <EmptyState message="No guides published yet." />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {guides.map((guide, index) => (
+                  <motion.div
+                    key={guide.id}
+                    variants={cardVariants}
+                    custom={index}
+                    className="p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">{guide.title}</h3>
+                    <ul className="list-disc mt-4 space-y-2 text-gray-600 dark:text-gray-300 pl-4">
+                      {guide.steps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ul>
+                  </motion.div>
                 ))}
-              </ul>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+              </div>
+            )}
+          </section>
 
-      <motion.section
-        variants={sectionVariants}
-        className="mb-12 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl p-6 border border-teal-500/20"
-      >
-        <h2 className="text-3xl font-semibold mb-4 text-teal-300 flex items-center space-x-2">
-          <Video className="w-6 h-6" />
-          <span>Video Tutorials</span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {videos.map((video, index) => (
-            <motion.div
-              key={index}
-              variants={cardVariants}
-              custom={index}
-              className="p-6 bg-white rounded-lg shadow-lg hover:shadow-teal-500/20 transition-all duration-300 border border-gray-200"
-            >
-              <h3 className="text-xl font-semibold text-gray-800">
-                {video.title}
-              </h3>
-              <video
-                controls
-                className="w-full h-48 mt-4 rounded"
-                aria-label={video.title}
-              >
-                <source src={video.url} type="video/mp4" />
-              </video>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+          <section className="mb-12 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
+            <h2 className="text-2xl font-semibold mb-4 text-primary flex items-center space-x-2">
+              <Video className="w-6 h-6" />
+              <span>Video Tutorials</span>
+            </h2>
+            {videos.length === 0 ? (
+              <EmptyState message="No videos published yet." />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {videos.map((video, index) => (
+                  <motion.div
+                    key={video.id}
+                    variants={cardVariants}
+                    custom={index}
+                    className="p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{video.title}</h3>
+                    {isDirectVideoFile(video.video_url) ? (
+                      <video controls className="w-full h-48 rounded" aria-label={video.title}>
+                        <source src={video.video_url} />
+                      </video>
+                    ) : (
+                      <a
+                        href={video.video_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Watch video →
+                      </a>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </section>
 
-      <motion.section variants={sectionVariants} className="text-center">
-        <p className="text-lg text-gray-700 mb-4">
-          If you are uncomfortable performing these steps, or if the problem
-          persists, call our professionals at{" "}
-          <a
-            href="tel:+18001234567"
-            className="text-teal-500 hover:text-teal-600 transition-colors duration-300"
-          >
-            (800) 123-4567
-          </a>
-          .
-        </p>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button
-            href="/contact"
-            className="bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-teal-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-teal-500/50"
-            aria-label="Contact Us"
-          >
-            Contact Us
-          </Button>
-        </motion.div>
-      </motion.section>
+          <section className="text-center">
+            <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
+              If you're uncomfortable performing these steps, or if the problem persists, our professionals
+              are ready to help.
+            </p>
+            <Button href="/contact" className="bg-primary text-white py-3 px-6 rounded-lg font-semibold">
+              Contact Us
+            </Button>
+          </section>
+        </>
+      )}
     </motion.div>
   );
 }

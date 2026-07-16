@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { User, Mail, Lock, AlertCircle } from "lucide-react";
 import apiService from "../../services/api";
 import Button from "../UI/Button";
+import Spinner from "../UI/Spinner";
 
 /**
  * Register component for user registration
@@ -18,6 +19,7 @@ function Register() {
     confirmPassword: "",
   });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   /**
@@ -30,11 +32,14 @@ function Register() {
       setError("Passwords do not match");
       return;
     }
+    setSubmitting(true);
     try {
       await apiService.register(formData);
       navigate("/login");
     } catch (err) {
-      setError("Registration failed");
+      setError(err.message || "Registration failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -163,13 +168,14 @@ function Register() {
             />
           </div>
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <motion.div whileHover={{ scale: submitting ? 1 : 1.05 }} whileTap={{ scale: submitting ? 1 : 0.95 }}>
           <Button
             type="submit"
+            disabled={submitting}
             className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-teal-500/50"
             aria-label="Register"
           >
-            Register
+            {submitting ? <Spinner size="sm" /> : "Register"}
           </Button>
         </motion.div>
       </form>

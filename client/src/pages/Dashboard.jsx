@@ -6,6 +6,7 @@ import { AuthContext } from "../context/AuthContext";
 import apiService from "../services/api";
 import ClientDashboard from "../components/Dashboard/ClientDashboard";
 import AdminDashboard from "../components/Dashboard/AdminDashboard";
+import Spinner from "../components/UI/Spinner";
 
 /**
  * Dashboard component for displaying user-specific dashboard
@@ -15,39 +16,35 @@ function Dashboard() {
   const { user } = useContext(AuthContext);
   const [serviceHistory, setServiceHistory] = useState([]);
   const [equipment, setEquipment] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  // console.log("dashaboard user",user);
-  useEffect(() => {
-    const handleUnauthorized = (e) => {
-      setError("Session expired. Please log in again.");
-      setTimeout(() => navigate("/login"), 2000);
-    };
-    window.addEventListener("unauthorized", handleUnauthorized);
-    return () => window.removeEventListener("unauthorized", handleUnauthorized);
-  }, [navigate]);
 
   useEffect(() => {
     if (!user || !apiService.isAuthenticated()) {
       navigate("/login");
       return;
     }
-    if (user.role === "client") {
-      const fetchData = async () => {
-        try {
-          const [history, equip] = await Promise.all([
-            apiService.getServiceHistory(),
-            apiService.getEquipment(),
-          ]);
-          setServiceHistory(history);
-          setEquipment(equip);
-          setError("");
-        } catch (err) {
-          setError(err.message || "Failed to fetch dashboard data");
-        }
-      };
-      fetchData();
+    if (user.role !== "client") {
+      setLoading(false);
+      return;
     }
+    const fetchData = async () => {
+      try {
+        const [history, equip] = await Promise.all([
+          apiService.getServiceHistory(),
+          apiService.getEquipment(),
+        ]);
+        setServiceHistory(history);
+        setEquipment(equip);
+        setError("");
+      } catch (err) {
+        setError(err.message || "Failed to fetch dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, [user, navigate]);
 
   const sectionVariants = {
@@ -84,7 +81,9 @@ function Dashboard() {
           <span>{error}</span>
         </motion.p>
       )}
-      {user.role === "admin" ? (
+      {loading ? (
+        <Spinner size="lg" />
+      ) : user.role === "admin" ? (
         <AdminDashboard />
       ) : (
         <ClientDashboard

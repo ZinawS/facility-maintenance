@@ -5,6 +5,7 @@ import { Mail, Lock, AlertCircle } from "lucide-react";
 import apiService from "../../services/api";
 import { AuthContext } from "../../context/AuthContext";
 import Button from "../UI/Button";
+import Spinner from "../UI/Spinner";
 
 /**
  * Login component for user authentication
@@ -15,16 +16,20 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       const response = await apiService.login({ email, password });
       setUser(response.user);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Invalid credentials");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -100,13 +105,14 @@ function Login() {
             />
           </div>
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <motion.div whileHover={{ scale: submitting ? 1 : 1.05 }} whileTap={{ scale: submitting ? 1 : 0.95 }}>
           <Button
             type="submit"
+            disabled={submitting}
             className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/80 transition-all duration-300"
             aria-label="Login"
           >
-            Login
+            {submitting ? <Spinner size="sm" /> : "Login"}
           </Button>
         </motion.div>
       </form>

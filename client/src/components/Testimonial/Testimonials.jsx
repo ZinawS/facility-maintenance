@@ -3,57 +3,29 @@ import { motion } from "framer-motion";
 import { Quote } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import apiService from "../../services/api";
-import profile from "../../assets/images/profile1.png";
-import Mike from "../../assets/images/mike.png";
-import Jane from "../../assets/images/Jane.png";
-
-// Static testimonials as fallback
-const staticTestimonials = [
-  {
-    quote: "FacilityPro saved us $8,200 annually with their maintenance plan!",
-    author: "John Smith, Restaurant Owner",
-    avatar: profile,
-  },
-  {
-    quote: "Their 24/7 service is a game-changer for our operations.",
-    author: "Jane Doe, Healthcare Manager",
-    avatar: Jane,
-  },
-  {
-    quote: "Top-notch technicians and unbeatable reliability.",
-    author: "Mike Johnson, Office Manager",
-    avatar: Mike,
-  },
-];
 
 const Testimonials = () => {
-  const [testimonials, setTestimonials] = useState(staticTestimonials);
+  const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
 
-  // Fetch testimonials from API
   useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        // const response = await apiService.getApprovedFeedback();
-        // // Validate and transform API data
-        // const validTestimonials = Array.isArray(response)
-        //   ? response.filter(
-        //       (item) => item && typeof item === "object" && item.quote && item.author
-        //     )
-        //   : [];
-        setTestimonials( staticTestimonials);
-        setError("");
-      } catch (err) {
-        console.error("Testimonials fetch error:", err);
-        setError(err.message || "Failed to fetch testimonials");
-        setTestimonials(staticTestimonials); // Fallback to static data
-      } finally {
-        setLoading(false);
-      }
+    let active = true;
+    apiService
+      .getApprovedFeedback()
+      .then((data) => {
+        if (active) setTestimonials(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (active) setError(err.message || "Failed to fetch testimonials");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
     };
-    fetchTestimonials();
   }, []);
 
   const sectionVariants = {
@@ -70,42 +42,35 @@ const Testimonials = () => {
     }),
   };
 
+  if (!loading && !error && testimonials.length === 0) return null;
+
   return (
     <motion.section
       ref={ref}
       variants={sectionVariants}
       animate={inView ? "visible" : "hidden"}
-      className="py-16 bg-gray-50"
+      className="py-16 bg-gray-50 dark:bg-gray-900"
     >
       <div className="container mx-auto text-center px-4 sm:px-6">
-        <h2 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800 flex items-center justify-center space-x-2">
+        <h2 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800 dark:text-white flex items-center justify-center space-x-2">
           <Quote className="w-8 h-8 text-primary" />
           <span>What Our Clients Say</span>
         </h2>
-        {loading && <p className="text-gray-600 text-base">Loading testimonials...</p>}
+        {loading && <p className="text-gray-600 dark:text-gray-300 text-base">Loading testimonials...</p>}
         {error && <p className="text-red-500 text-base">{error}</p>}
-        {!loading && !error && testimonials.length === 0 && (
-          <p className="text-gray-600 text-base">No testimonials available.</p>
-        )}
-        {!loading && !error && testimonials.length > 0 && (
+        {!loading && !error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {testimonials.map((testimonial, index) => (
               <motion.div
-                key={index}
+                key={testimonial.id}
                 variants={cardVariants}
                 custom={index}
-                className="p-6 bg-white rounded-lg shadow-sm hover:shadow-primary/20 transition-all duration-300 border border-gray-100"
+                className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-primary/20 transition-all duration-300 border border-gray-100 dark:border-gray-700"
               >
-                <img
-                  src={testimonial.avatar || profile}
-                  alt={testimonial.author || "Anonymous"}
-                  className="h-10 w-10 rounded-full mx-auto mb-4"
-                  loading="lazy"
-                />
-                <p className="text-gray-700 italic mb-4 text-base">
-                  "{testimonial.quote || "No quote provided."}"
+                <p className="text-gray-700 dark:text-gray-200 italic mb-4 text-base">
+                  "{testimonial.quote}"
                 </p>
-                <p className="text-gray-800 font-semibold text-base">
+                <p className="text-gray-800 dark:text-gray-100 font-semibold text-base">
                   {testimonial.author || "Anonymous"}
                 </p>
               </motion.div>

@@ -1,10 +1,17 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        primary: "#1E40AF",
+        primary: {
+          light: "#3B82F6",
+          DEFAULT: "#1E40AF",
+          dark: "#15306E",
+        },
+        "primary-light": "#3B82F6",
+        "primary-dark": "#15306E",
         secondary: "#1E3A8A",
         accent: "#3B82F6",
       },
@@ -13,5 +20,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
 };

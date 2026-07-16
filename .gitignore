@@ -6,3 +6,9 @@ dist/
 build/
 *.log
 .DS_Store
+server/uploads/
+
+# Original standalone repos, kept locally as a backup/reference only.
+# (Each has its own git history + GitHub remote; not part of this monorepo.)
+/client_Yeneguad/
+/server_Yeneguad/

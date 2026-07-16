@@ -2,6 +2,7 @@
 import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from './AuthContext';
+import Spinner from '../components/UI/Spinner';
 
 /**
  * ProtectedRoute component to secure routes
@@ -14,7 +15,7 @@ export const ProtectedRoute = ({ children, allowedRoles = ['client', 'admin'] })
   const { user, loading } = useContext(AuthContext);
 
   if (loading) {
-    return <div className="container mx-auto p-6 text-center">Loading...</div>;
+    return <Spinner size="lg" className="min-h-[60vh]" />;
   }
 
   if (!user || !allowedRoles.includes(user.role)) {

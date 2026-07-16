@@ -1,42 +1,42 @@
 const express = require("express");
 const cors = require("cors");
-const mysql = require("mysql2/promise");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const helmet = require("helmet");
+const compression = require("compression");
+const path = require("path");
+const pinoHttp = require("pino-http");
+
+const env = require("./config/env");
+const logger = require("./config/logger");
+const { pool, checkConnection } = require("./config/db");
+const { generalLimiter } = require("./middleware/rateLimiters");
+const { notFound, errorHandler } = require("./middleware/errorHandler");
+const mountContentRoutes = require("./routes/content");
+
 const authRoutes = require("./routes/auth");
 const clientRoutes = require("./routes/client");
 const adminRoutes = require("./routes/admin");
 const publicRoutes = require("./routes/public");
-require("dotenv").config();
+const reportsRoutes = require("./routes/reports");
+const { router: paymentsRoutes, webhookRouter: paymentsWebhookRouter } = require("./routes/payments");
 
-/**
- * Express application instance
- * @type {import('express').Express}
- */
 const app = express();
 
-// Database connection pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "root",
-  database: process.env.DB_NAME || "facilitypro",
-  port: process.env.DB_PORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
-
-// CORS configuration
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+app.use(helmet());
+app.use(compression());
+app.use(
+  pinoHttp({
+    logger,
+    autoLogging: { ignore: (req) => req.url === "/api/health" },
+  })
+);
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+    origin(origin, callback) {
+      if (!origin || env.corsOrigins.includes(origin)) {
+        return callback(null, true);
       }
+      callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -44,90 +44,57 @@ app.use(
   })
 );
 
-// Handle preflight OPTIONS requests
-app.options("*", cors());
+app.use(generalLimiter);
 
-// Middleware to parse JSON bodies
-app.use(express.json());
+// Stripe webhook needs the raw request body for signature verification, so
+// it's mounted before the global JSON body parser.
+app.use("/api/payments", paymentsWebhookRouter);
 
-// Provide database pool to routes
+app.use(express.json({ limit: "1mb" }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Provide the DB pool to every route via req.db.
 app.use((req, res, next) => {
   req.db = pool;
   next();
 });
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/client", clientRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/public", publicRoutes);
-
-/**
- * Stripe payment intent creation endpoint with transaction logging
- * @route POST /api/payments/create
- * @param {Object} req.body - Payment details
- * @param {number} req.body.amount - Amount in cents
- * @param {string} req.body.currency - Currency code
- * @param {string} req.body.description - Payment description
- * @param {number} [req.body.userId] - Optional user ID for logged-in users
- * @returns {Object} Payment intent with client secret
- */
-app.post("/api/payments/create", async (req, res) => {
-  const connection = await pool.getConnection();
+app.get("/api/health", async (req, res) => {
   try {
-    await connection.beginTransaction();
-    const { amount, currency, description, userId } = req.body;
-    if (!amount || !currency || !description) {
-      return res
-        .status(400)
-        .json({ message: "Missing required payment fields" });
-    }
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      description,
-      payment_method_types: ["card"],
-    });
-    await connection.query(
-      "INSERT INTO payments (user_id, stripe_payment_intent_id, amount, currency, description, status) VALUES (?, ?, ?, ?, ?, ?)",
-      [
-        userId || null,
-        paymentIntent.id,
-        amount / 100,
-        currency,
-        description,
-        "pending",
-      ]
-    );
-    await connection.commit();
-    res.json({ clientSecret: paymentIntent.client_secret });
-  } catch (error) {
-    await connection.rollback();
-    console.error("Error creating payment intent:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to create payment intent",
-        error: error.message,
-      });
-  } finally {
-    connection.release();
+    await checkConnection();
+    res.json({ status: "ok", db: "connected" });
+  } catch (err) {
+    res.status(503).json({ status: "error", db: "unavailable", error: err.message });
   }
 });
 
-/**
- * Error handling middleware
- * @param {Error} err - Error object
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-app.use((err, req, res, next) => {
-  console.error("Server error:", err);
-  res
-    .status(500)
-    .json({ message: "Internal server error", error: err.message });
+app.use("/api/auth", authRoutes);
+app.use("/api/client", clientRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/admin/reports", reportsRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/payments", paymentsRoutes);
+mountContentRoutes(app);
+
+app.use(notFound);
+app.use(errorHandler);
+
+const server = app.listen(env.port, () => {
+  logger.info(`Server running on port ${env.port} (${env.nodeEnv})`);
 });
 
-const port = process.env.PORT || 4000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+function shutdown(signal) {
+  logger.info(`${signal} received, shutting down gracefully`);
+  server.close(async () => {
+    await pool.end();
+    logger.info("Server closed");
+    process.exit(0);
+  });
+  // Force-exit if graceful shutdown hangs.
+  setTimeout(() => process.exit(1), 10_000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+module.exports = app;

@@ -15,13 +15,14 @@
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.542.0",
     "prismjs": "^1.30.0",
-    "quill": "^2.0.3",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-intersection-observer": "^9.16.0",
     "react-quill": "^2.0.0",
     "react-router-dom": "^6.4.0",
-    "react-tilt": "^1.0.2"
+    "react-tilt": "^1.0.2",
+    "recharts": "^3.2.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.1",

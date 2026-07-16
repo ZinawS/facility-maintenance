@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { DollarSign } from "lucide-react";
+import EmptyState from "../UI/EmptyState";
 
 /**
  * PaymentsList component for displaying payment records
@@ -36,6 +37,7 @@ function PaymentsList({ payments }) {
         <DollarSign className="w-6 h-6" />
         <span>Payments</span>
       </h3>
+      {payments.length === 0 && <EmptyState message="No payments yet." />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {payments.map((payment, index) => (
           <motion.div

@@ -8,14 +8,17 @@ import {
   Store,
   HelpCircle,
 } from "lucide-react";
-import {address, email, phone, workingHours} from "../../utility/constant"
-import {Link} from "react-router-dom"
+import { Link } from "react-router-dom"
+import useSiteSettings from "../../hooks/useSiteSettings"
 
 /**
  * Footer component for One-Stop Utility Service application
  * @returns {JSX.Element} The rendered Footer component
  */
 function Footer() {
+  const { settings } = useSiteSettings();
+  const telHref = (value) => `tel:${(value || "").replace(/[^\d+]/g, "")}`;
+
   // Animation variants for footer entrance
   const footerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -114,30 +117,29 @@ function Footer() {
               <Phone className="w-5 h-5 text-teal-300" />
               <p>
                 Phone:{" "}
-                <a
-                  href="tel:+18001234567"
-                  className="hover:text-teal-300 transition-colors duration-300"
-                >
-                  {phone}
+                <a href={telHref(settings.phone)} className="hover:text-teal-300 transition-colors duration-300">
+                  {settings.phone}
                 </a>
               </p>
             </motion.li>
-            <motion.li
-              variants={itemVariants}
-              custom={quickLinks.length + 4}
-              className="flex items-center space-x-2"
-            >
-              <Phone className="w-5 h-5 text-teal-300" />
-              <p>
-                Emergency:{" "}
-                <a
-                  href="tel:+18009876543"
-                  className="hover:text-teal-300 transition-colors duration-300"
-                >
-                  {phone}
-                </a>
-              </p>
-            </motion.li>
+            {settings.emergency_phone && (
+              <motion.li
+                variants={itemVariants}
+                custom={quickLinks.length + 4}
+                className="flex items-center space-x-2"
+              >
+                <Phone className="w-5 h-5 text-teal-300" />
+                <p>
+                  Emergency:{" "}
+                  <a
+                    href={telHref(settings.emergency_phone)}
+                    className="hover:text-teal-300 transition-colors duration-300"
+                  >
+                    {settings.emergency_phone}
+                  </a>
+                </p>
+              </motion.li>
+            )}
             <motion.li
               variants={itemVariants}
               custom={quickLinks.length + 5}
@@ -146,11 +148,8 @@ function Footer() {
               <Mail className="w-5 h-5 text-teal-300" />
               <p>
                 Email:{" "}
-                <a
-                  href="mailto:service@One-Stop Utility Service.com"
-                  className="hover:text-teal-300 transition-colors duration-300"
-                >
-                  {email}
+                <a href={`mailto:${settings.email}`} className="hover:text-teal-300 transition-colors duration-300">
+                  {settings.email}
                 </a>
               </p>
             </motion.li>
@@ -160,7 +159,7 @@ function Footer() {
               className="flex items-center space-x-2"
             >
               <MapPin className="w-5 h-5 text-teal-300" />
-              <p>{address}</p>
+              <p>{settings.address}</p>
             </motion.li>
             <motion.li
               variants={itemVariants}
@@ -168,7 +167,7 @@ function Footer() {
               className="flex items-center space-x-2"
             >
               <Clock className="w-5 h-5 text-teal-300" />
-              <p>{workingHours}</p>
+              <p>{settings.working_hours}</p>
             </motion.li>
           </ul>
         </motion.div>
@@ -181,7 +180,7 @@ function Footer() {
         className="text-center mt-12 border-t border-teal-500/30 pt-6"
       >
         <p className="text-gray-300 text-sm">
-          &copy; 2025 One-Stop Utility Service. All rights reserved.
+          &copy; {new Date().getFullYear()} One-Stop Utility Service. All rights reserved.
         </p>
       </motion.div>
 

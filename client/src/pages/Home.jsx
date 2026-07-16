@@ -8,6 +8,7 @@ import {
   Clock,
   Users,
   Award,
+  Settings,
 } from "lucide-react";
 import { Tilt } from "react-tilt";
 import { useInView } from "react-intersection-observer";
@@ -16,33 +17,10 @@ import Button from "../components/UI/Button";
 import BlogSection from "../components/Blog/BlogSection";
 import Testimonials from "../components/Testimonial/Testimonials";
 import backgroundImage from "../assets/images/Hero.png";
-import { ServiceList } from "../utility/ServiceLists";
 import { useNavigate } from "react-router-dom";
 
-// Static data for services
-const staticServices = ServiceList || [
-  {
-    name: "HVAC Maintenance",
-    description: "Comprehensive HVAC care for optimal performance.",
-    image: "/assets/hvac.png",
-    link: "/services/hvac",
-  },
-  {
-    name: "Walk-in Cooler/Freezer",
-    description: "Reliable cooling solutions for your business.",
-    image: "/assets/cooler.png",
-    link: "/services/cooler",
-  },
-  {
-    name: "Commercial Refrigeration",
-    description: "Expert refrigeration system maintenance.",
-    image: "/assets/refrigeration.png",
-    link: "/services/refrigeration",
-  },
-];
-
 const Home = memo(() => {
-  const [services, setServices] = useState(staticServices);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState({
     services: true,
     testimonials: true,
@@ -74,24 +52,21 @@ const Home = memo(() => {
     threshold: 0.2,
   });
 
-  // Fetch services data (testimonials are handled in Testimonials component)
+  // Fetch services data (testimonials/blogs are handled in their own components)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchServices = async () => {
       try {
-        setServices(staticServices); // Using static services for now
-        setError({ services: "", testimonials: "", blogs: "" });
+        const data = await apiService.getServices();
+        setServices(data.slice(0, 3));
+        setError((prev) => ({ ...prev, services: "" }));
       } catch (err) {
         console.error("Fetch error:", err);
-        setError({
-          services: err.message || "Failed to fetch services",
-          testimonials: "",
-          blogs: err.message || "Failed to fetch blogs",
-        });
+        setError((prev) => ({ ...prev, services: err.message || "Failed to fetch services" }));
       } finally {
-        setLoading({ services: false, testimonials: false, blogs: false });
+        setLoading((prev) => ({ ...prev, services: false }));
       }
     };
-    fetchData();
+    fetchServices();
   }, []);
 
   const sectionVariants = {
@@ -221,11 +196,14 @@ const Home = memo(() => {
           {error.services && (
             <p className="text-red-500 text-center py-10">{error.services}</p>
           )}
-          {!loading.services && !error.services && (
+          {!loading.services && !error.services && services.length === 0 && (
+            <p className="text-gray-500 text-center py-10">No services listed yet.</p>
+          )}
+          {!loading.services && !error.services && services.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {services.map((service, index) => (
                 <motion.div
-                  key={service.name}
+                  key={service.id}
                   variants={cardVariants}
                   custom={index}
                   initial="hidden"
@@ -234,23 +212,27 @@ const Home = memo(() => {
                 >
                   <Tilt options={{ max: 15, scale: 1.05, speed: 500 }}>
                     <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col border border-gray-100">
-                      <div className="h-48 bg-gray-100 overflow-hidden">
-                        <img
-                          src={service.image}
-                          alt={service.name}
-                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                          loading="lazy"
-                        />
+                      <div className="h-48 bg-gray-100 overflow-hidden flex items-center justify-center">
+                        {service.image_url ? (
+                          <img
+                            src={service.image_url}
+                            alt={service.name}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <Settings className="w-16 h-16 text-primary/30" />
+                        )}
                       </div>
                       <div className="p-6 flex flex-col flex-grow">
                         <h3 className="text-xl font-bold text-gray-800 mb-3">
                           {service.name}
                         </h3>
                         <p className="text-gray-600 mb-5 flex-grow">
-                          {service.description}
+                          {service.short_description}
                         </p>
                         <Button
-                          onClick={() => navigate(service.link)}
+                          onClick={() => navigate(`/services/${service.slug}`)}
                           className="bg-primary hover:bg-primary/90 text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 self-start flex items-center gap-2 group"
                           aria-label={`Learn more about ${service.name}`}
                         >

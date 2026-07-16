@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Wrench } from "lucide-react";
+import EmptyState from "../UI/EmptyState";
 
 /**
  * ServiceRequestsList component for displaying service requests
@@ -36,6 +37,7 @@ function ServiceRequestsList({ serviceRequests }) {
         <Wrench className="w-6 h-6" />
         <span>Service Requests</span>
       </h3>
+      {serviceRequests.length === 0 && <EmptyState message="No service requests yet." />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {serviceRequests.map((request, index) => (
           <motion.div

@@ -1,13 +1,29 @@
-const users = [];
-const serviceHistory = [
-  { id: 1, userId: 1, date: '2025-08-20', service: 'HVAC Maintenance', status: 'Completed' },
-  { id: 2, userId: 1, date: '2025-08-15', service: 'Cooler Repair', status: 'Completed' }
-];
-const equipment = [
-  { id: 1, userId: 1, model: 'Carrier X1', serial: '12345', lastService: '2025-08-20' },
-  { id: 2, userId: 1, model: 'Trane Y2', serial: '67890', lastService: '2025-08-15' }
-];
-const feedback = [];
-const blogs = [];
+const mysql = require("mysql2/promise");
+const env = require("./env");
+const logger = require("./logger");
 
-module.exports = { users, serviceHistory, equipment, feedback, blogs };
+const pool = mysql.createPool({
+  host: env.db.host,
+  user: env.db.user,
+  password: env.db.password,
+  database: env.db.database,
+  port: env.db.port,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  dateStrings: true,
+});
+
+pool.on("connection", () => logger.debug("New MySQL connection established"));
+
+async function checkConnection() {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query("SELECT 1");
+    return true;
+  } finally {
+    connection.release();
+  }
+}
+
+module.exports = { pool, checkConnection };

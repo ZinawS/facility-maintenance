@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { MessageSquare, CheckCircle, X } from "lucide-react";
 import apiService from "../../services/api";
 import Button from "../UI/Button";
+import EmptyState from "../UI/EmptyState";
 
 /**
  * FeedbackApproval component for approving or rejecting feedback
@@ -81,6 +82,7 @@ function FeedbackApproval({ feedback, setFeedback, setSuccess, setError }) {
         <MessageSquare className="w-6 h-6" />
         <span>Feedback Approval</span>
       </h3>
+      {feedback.length === 0 && <EmptyState message="No feedback yet." />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {feedback.map((item, index) => (
           <motion.div
@@ -90,16 +92,7 @@ function FeedbackApproval({ feedback, setFeedback, setSuccess, setError }) {
             className="p-6 bg-white rounded-lg shadow-lg hover:shadow-teal-500/20 transition-all duration-300 border border-gray-200"
           >
             <p className="text-gray-700">
-              <strong>User:</strong> {item.user_name || item.name || "Guest"}
-            </p>
-            <p className="text-gray-700">
-              <strong>Email:</strong> {item.email || "N/A"}
-            </p>
-            <p className="text-gray-700">
-              <strong>Phone:</strong> {item.phone || "N/A"}
-            </p>
-            <p className="text-gray-700">
-              <strong>Equipment Type:</strong> {item.equipment_type || "N/A"}
+              <strong>User:</strong> {item.user_name || "Guest"}
             </p>
             <p className="text-gray-700">
               <strong>Comment:</strong> {item.comment}

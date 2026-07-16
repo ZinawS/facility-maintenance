@@ -1,50 +1,34 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { HelpCircle } from "lucide-react";
+import apiService from "../services/api";
+import Spinner from "../components/UI/Spinner";
+import EmptyState from "../components/UI/EmptyState";
 
 /**
- * FAQ component for displaying frequently asked questions
- * @returns {JSX.Element} The rendered FAQ component
+ * FAQ page, backed by the admin-managed /api/public/faqs resource.
  */
 function FAQ() {
-  const faqs = [
-    {
-      question: "How often should I service my HVAC?",
-      answer:
-        "We recommend semi-annual maintenance to ensure optimal performance.",
-    },
-    {
-      question: "What should I check if my walk-in is warm?",
-      answer:
-        "Check the door gasket, power supply, and temperature settings. If issues persist, call us.",
-    },
-    {
-      question: "Do you offer financing?",
-      answer: "Yes, we offer flexible financing options for new installations.",
-    },
-    {
-      question: "What is the average lifespan of a commercial rooftop unit?",
-      answer: "Typically 15-20 years with proper maintenance.",
-    },
-  ];
+  const [faqs, setFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Animation variants for section entrance
+  useEffect(() => {
+    apiService
+      .getFaqs()
+      .then(setFaqs)
+      .catch((err) => setError(err.message || "Failed to load FAQs"))
+      .finally(() => setLoading(false));
+  }, []);
+
   const sectionVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
   };
 
-  // Animation variants for cards
   const cardVariants = {
     hidden: { opacity: 0, x: -20 },
-    visible: (i) => ({
-      opacity: 1,
-      x: 0,
-      transition: { delay: i * 0.1, duration: 0.4, ease: "easeOut" },
-    }),
+    visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.1, duration: 0.4, ease: "easeOut" } }),
   };
 
   return (
@@ -52,26 +36,29 @@ function FAQ() {
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
-      className="container mx-auto px-6 py-12"
+      className="container mx-auto px-6 py-12 min-h-[60vh]"
       role="main"
       aria-label="FAQ Page"
     >
-      <h1 className="text-4xl font-extrabold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500 flex items-center justify-center space-x-2">
-        <HelpCircle className="w-8 h-8" />
+      <h1 className="text-4xl font-extrabold text-center mb-8 text-gray-800 dark:text-white flex items-center justify-center space-x-2">
+        <HelpCircle className="w-8 h-8 text-primary" />
         <span>Frequently Asked Questions</span>
       </h1>
-      <div className="space-y-6">
+
+      {loading && <Spinner size="lg" />}
+      {error && <p className="text-red-500 text-center">{error}</p>}
+      {!loading && !error && faqs.length === 0 && <EmptyState message="No FAQs published yet." />}
+
+      <div className="space-y-6 max-w-3xl mx-auto">
         {faqs.map((faq, index) => (
           <motion.div
-            key={index}
+            key={faq.id}
             variants={cardVariants}
             custom={index}
-            className="p-6 bg-white/90 backdrop-blur-md rounded-lg shadow-lg hover:shadow-teal-500/20 transition-all duration-300 border border-teal-500/20"
+            className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-primary/20 transition-all duration-300 border border-gray-100 dark:border-gray-700"
           >
-            <h3 className="text-xl font-semibold text-gray-800">
-              {faq.question}
-            </h3>
-            <p className="mt-2 text-gray-600">{faq.answer}</p>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">{faq.question}</h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-300">{faq.answer}</p>
           </motion.div>
         ))}
       </div>

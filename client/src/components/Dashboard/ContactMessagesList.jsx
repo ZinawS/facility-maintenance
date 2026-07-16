@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { MessageSquare } from "lucide-react";
+import EmptyState from "../UI/EmptyState";
 
 /**
  * ContactMessagesList component for displaying contact messages
@@ -32,6 +33,7 @@ function ContactMessagesList({ contactMessages }) {
         <MessageSquare className="w-6 h-6" />
         <span>Contact Messages</span>
       </h3>
+      {contactMessages.length === 0 && <EmptyState message="No contact messages yet." />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {contactMessages.map((message, index) => (
           <motion.div
@@ -43,6 +45,11 @@ function ContactMessagesList({ contactMessages }) {
             <p className="text-gray-700">
               <strong>Name:</strong> {message.name || "N/A"}
             </p>
+            {message.company && (
+              <p className="text-gray-700">
+                <strong>Company:</strong> {message.company}
+              </p>
+            )}
             <p className="text-gray-700">
               <strong>Email:</strong> {message.email || "N/A"}
             </p>

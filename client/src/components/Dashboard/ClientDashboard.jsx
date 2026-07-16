@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { motion } from "framer-motion";
 import { Wrench, Hammer } from "lucide-react";
 import FeedbackForm from "./FeedbackForm";
+import EmptyState from "../UI/EmptyState";
 
 /**
  * ClientDashboard component for displaying service history and equipment profiles
@@ -51,6 +52,7 @@ function ClientDashboard({ serviceHistory, equipment }) {
           <Wrench className="w-6 h-6" />
           <span>Service History</span>
         </h3>
+        {serviceHistory.length === 0 && <EmptyState message="No service history yet." />}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {serviceHistory.map((item, index) => (
             <motion.div
@@ -81,6 +83,7 @@ function ClientDashboard({ serviceHistory, equipment }) {
           <Hammer className="w-6 h-6" />
           <span>Equipment Profiles</span>
         </h3>
+        {equipment.length === 0 && <EmptyState message="No equipment on file yet." />}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {equipment.map((equip, index) => (
             <motion.div
