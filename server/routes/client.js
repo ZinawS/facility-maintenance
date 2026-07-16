@@ -37,6 +37,23 @@ router.get(
 );
 
 /**
+ * @route GET /api/client/payments
+ * The logged-in customer's own order/payment history.
+ */
+router.get(
+  "/payments",
+  auth,
+  asyncHandler(async (req, res) => {
+    const [payments] = await req.db.query(
+      `SELECT id, description, amount, currency, status, created_at
+       FROM payments WHERE user_id = ? ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    res.json(payments);
+  })
+);
+
+/**
  * @route POST /api/client/feedback
  */
 router.post(

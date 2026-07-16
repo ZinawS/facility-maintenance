@@ -110,19 +110,33 @@ router.post(
       description = req.body.description;
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency: "usd",
-      description,
-      payment_method_types: ["card"],
-      metadata: {
-        kind,
-        planId: planId ?? "",
-        partId: partId ?? "",
-        serviceRequestId: serviceRequestId ?? "",
-        userId: req.user?.id ?? "",
-      },
-    });
+    // Stripe SDK errors carry their own `.statusCode` (e.g. 401 for an
+    // expired API key) reflecting Stripe's response, not ours — letting
+    // that propagate to the client meant a broken Stripe key made our API
+    // return a real 401, which force-logs-out whoever was checking out
+    // (the frontend treats any 401 as "your session expired"). Convert any
+    // Stripe failure into a safe, generic 502 instead.
+    let paymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: "usd",
+        description,
+        payment_method_types: ["card"],
+        metadata: {
+          kind,
+          planId: planId ?? "",
+          partId: partId ?? "",
+          serviceRequestId: serviceRequestId ?? "",
+          userId: req.user?.id ?? "",
+        },
+      });
+    } catch (stripeErr) {
+      logger.error({ err: stripeErr }, "Stripe payment intent creation failed");
+      return res
+        .status(502)
+        .json({ message: "Payment processor is currently unavailable. Please try again shortly." });
+    }
 
     await req.db.query(
       `INSERT INTO payments

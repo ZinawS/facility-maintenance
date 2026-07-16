@@ -129,6 +129,7 @@ const apiService = {
   // --- Client dashboard ---
   getServiceHistory: () => request(api.get("/api/client/service-history"), "Failed to fetch service history"),
   getEquipment: () => request(api.get("/api/client/equipment"), "Failed to fetch equipment data"),
+  getMyPayments: () => request(api.get("/api/client/payments"), "Failed to fetch order history"),
   submitFeedback: (feedbackData) =>
     request(api.post("/api/client/feedback", feedbackData), "Failed to submit feedback"),
   submitContact: (contactData) =>

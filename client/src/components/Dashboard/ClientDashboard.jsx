@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Wrench, Hammer } from "lucide-react";
 import FeedbackForm from "./FeedbackForm";
 import ServiceRequestPanel from "./ServiceRequestPanel";
+import OrderHistory from "./OrderHistory";
 import EmptyState from "../UI/EmptyState";
 
 /**
@@ -105,6 +106,10 @@ function ClientDashboard({ serviceHistory, equipment }) {
             </motion.div>
           ))}
         </div>
+      </motion.section>
+
+      <motion.section variants={sectionVariants}>
+        <OrderHistory />
       </motion.section>
 
       <motion.section variants={sectionVariants}>
