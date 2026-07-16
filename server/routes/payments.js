@@ -1,13 +1,11 @@
 const express = require("express");
-const Stripe = require("stripe");
 const { body } = require("express-validator");
 const asyncHandler = require("../middleware/asyncHandler");
 const handleValidation = require("../middleware/handleValidation");
 const { optionalAuth } = require("../middleware/auth");
 const env = require("../config/env");
 const logger = require("../config/logger");
-
-const stripe = Stripe(env.stripe.secretKey);
+const stripe = require("../config/stripe");
 
 const router = express.Router();
 const webhookRouter = express.Router();

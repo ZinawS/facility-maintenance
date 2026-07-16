@@ -6,6 +6,8 @@ const asyncHandler = require("../middleware/asyncHandler");
 const handleValidation = require("../middleware/handleValidation");
 const { getPagination, buildMeta } = require("../utils/paginate");
 const { sendMail } = require("../config/mailer");
+const { cancelOrder } = require("../utils/orders");
+const logger = require("../config/logger");
 
 const router = express.Router();
 
@@ -70,12 +72,80 @@ router.get(
     const [[{ total }]] = await req.db.query("SELECT COUNT(*) AS total FROM payments");
     const [payments] = await req.db.query(
       `SELECT p.id, p.user_id, p.stripe_payment_intent_id, p.amount, p.currency, p.description,
-              p.status, p.created_at, u.name AS user_name
+              p.status, p.fulfillment_status, p.tracking_number, p.cancel_reason, p.created_at,
+              u.name AS user_name, u.email AS user_email
        FROM payments p LEFT JOIN users u ON p.user_id = u.id
        ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
       [limit, offset]
     );
     res.json({ data: payments, meta: buildMeta({ page, limit }, total) });
+  })
+);
+
+/**
+ * @route PUT /api/admin/payments/:id/status
+ * Sets an order's fulfillment status (accepted/processing/shipped/
+ * delivered/canceled) and optionally a tracking number; canceling an
+ * already-paid order triggers an automatic Stripe refund. The customer is
+ * emailed on every change.
+ */
+router.put(
+  "/payments/:id/status",
+  [
+    param("id").isInt(),
+    body("fulfillment_status").isIn([
+      "pending",
+      "accepted",
+      "processing",
+      "shipped",
+      "delivered",
+      "canceled",
+    ]),
+    body("tracking_number").optional({ nullable: true }).isString().trim().isLength({ max: 100 }),
+    body("cancel_reason").optional({ nullable: true }).isString().trim().isLength({ max: 500 }),
+  ],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const [rows] = await req.db.query(
+      `SELECT p.*, u.email AS user_email, u.name AS user_name
+       FROM payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.id = ?`,
+      [req.params.id]
+    );
+    const payment = rows[0];
+    if (!payment) return res.status(404).json({ message: "Order not found" });
+
+    const { fulfillment_status, tracking_number, cancel_reason } = req.body;
+
+    if (fulfillment_status === "canceled") {
+      try {
+        await cancelOrder(req.db, payment, cancel_reason);
+      } catch (err) {
+        logger.error({ err }, "Refund failed");
+        return res.status(502).json({ message: "Failed to process the refund via Stripe." });
+      }
+    } else {
+      await req.db.query(
+        "UPDATE payments SET fulfillment_status = ?, tracking_number = COALESCE(?, tracking_number) WHERE id = ?",
+        [fulfillment_status, tracking_number || null, req.params.id]
+      );
+    }
+
+    if (payment.user_email) {
+      await sendMail({
+        to: payment.user_email,
+        subject: `Order update: ${payment.description}`,
+        html: `<p>Hi ${payment.user_name || "there"},</p>
+               <p>Your order (<strong>${payment.description}</strong>) is now: <strong>${fulfillment_status}</strong>.</p>
+               ${tracking_number ? `<p>Tracking number: ${tracking_number}</p>` : ""}
+               ${
+                 fulfillment_status === "canceled"
+                   ? "<p>If you were charged, a refund has been issued and should appear in a few business days.</p>"
+                   : ""
+               }`,
+      });
+    }
+
+    res.json({ success: true });
   })
 );
 

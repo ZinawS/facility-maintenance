@@ -101,7 +101,16 @@ CREATE TABLE IF NOT EXISTS payments (
   amount DECIMAL(10, 2) NOT NULL,
   currency VARCHAR(10) NOT NULL DEFAULT 'usd',
   description VARCHAR(255) NOT NULL,
-  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  -- Financial status (has money moved?) is intentionally separate from
+  -- fulfillment_status (has it shipped?) — see db/migrations/006.
+  status ENUM('pending', 'succeeded', 'failed', 'refunded', 'canceled') NOT NULL DEFAULT 'pending',
+  fulfillment_status
+    ENUM('pending', 'accepted', 'processing', 'shipped', 'delivered', 'canceled')
+    NOT NULL DEFAULT 'pending',
+  tracking_number VARCHAR(100) NULL,
+  cancel_reason VARCHAR(500) NULL,
+  canceled_at TIMESTAMP NULL,
+  refunded_at TIMESTAMP NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL

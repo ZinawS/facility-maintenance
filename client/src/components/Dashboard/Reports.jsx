@@ -89,6 +89,11 @@ function Reports() {
   };
 
   const totalRevenueCents = data?.revenueByDay.reduce((sum, d) => sum + Number(d.revenue || 0) * 100, 0) ?? 0;
+  // Revenue above already only sums status = 'succeeded', so a refund
+  // (status moves to 'refunded') is excluded automatically — this tile
+  // just makes that visible rather than letting it silently disappear.
+  const totalRefundedCents =
+    (data?.paymentsByStatus.find((p) => p.status === "refunded")?.total ?? 0) * 100;
 
   return (
     <motion.section className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
@@ -130,11 +135,17 @@ function Reports() {
 
       {!loading && data && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="p-4 rounded-lg bg-primary/5 dark:bg-primary/10 border border-primary/10">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Revenue</p>
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Net Revenue</p>
               <p className="text-2xl font-bold text-primary flex items-center gap-1">
                 <TrendingUp className="w-5 h-5" /> ${(totalRevenueCents / 100).toFixed(2)}
+              </p>
+            </div>
+            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30">
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Refunded</p>
+              <p className="text-2xl font-bold text-red-600">
+                -${(totalRefundedCents / 100).toFixed(2)}
               </p>
             </div>
             <div className="p-4 rounded-lg bg-primary/5 dark:bg-primary/10 border border-primary/10">
@@ -144,7 +155,7 @@ function Reports() {
               </p>
             </div>
             <div className="p-4 rounded-lg bg-primary/5 dark:bg-primary/10 border border-primary/10">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Payments</p>
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Orders</p>
               <p className="text-2xl font-bold text-primary">
                 {data.paymentsByStatus.reduce((sum, d) => sum + Number(d.count), 0)}
               </p>

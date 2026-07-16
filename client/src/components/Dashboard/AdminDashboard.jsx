@@ -326,7 +326,7 @@ function AdminDashboard() {
 
           {activeTab === "operations" && (
             <>
-              <PaymentsList payments={payments} />
+              <PaymentsList payments={payments} setPayments={setPayments} />
               <ServiceRequestsList serviceRequests={serviceRequests} setServiceRequests={setServiceRequests} />
               <ContactMessagesList contactMessages={contactMessages} />
               <FeedbackApproval

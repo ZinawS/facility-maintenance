@@ -1,8 +1,10 @@
 const express = require("express");
-const { body } = require("express-validator");
+const { body, param } = require("express-validator");
 const auth = require("../middleware/auth");
 const asyncHandler = require("../middleware/asyncHandler");
 const handleValidation = require("../middleware/handleValidation");
+const logger = require("../config/logger");
+const { cancelOrder, CANCELABLE_FULFILLMENT_STATUSES } = require("../utils/orders");
 
 const router = express.Router();
 
@@ -45,11 +47,48 @@ router.get(
   auth,
   asyncHandler(async (req, res) => {
     const [payments] = await req.db.query(
-      `SELECT id, description, amount, currency, status, created_at
+      `SELECT id, description, amount, currency, status, fulfillment_status,
+              tracking_number, cancel_reason, created_at
        FROM payments WHERE user_id = ? ORDER BY created_at DESC`,
       [req.user.id]
     );
     res.json(payments);
+  })
+);
+
+/**
+ * @route PUT /api/client/payments/:id/cancel
+ * Customers can cancel their own order while it hasn't shipped yet; if it
+ * was already paid, this issues a Stripe refund automatically.
+ */
+router.put(
+  "/payments/:id/cancel",
+  auth,
+  [
+    param("id").isInt(),
+    body("reason").optional({ nullable: true }).isString().trim().isLength({ max: 500 }),
+  ],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const [rows] = await req.db.query("SELECT * FROM payments WHERE id = ? AND user_id = ?", [
+      req.params.id,
+      req.user.id,
+    ]);
+    const payment = rows[0];
+    if (!payment) return res.status(404).json({ message: "Order not found" });
+    if (!CANCELABLE_FULFILLMENT_STATUSES.includes(payment.fulfillment_status)) {
+      return res
+        .status(400)
+        .json({ message: "This order can no longer be canceled — it has already shipped." });
+    }
+
+    try {
+      const outcome = await cancelOrder(req.db, payment, req.body.reason);
+      res.json({ success: true, status: outcome });
+    } catch (err) {
+      logger.error({ err }, "Refund failed");
+      res.status(502).json({ message: "Failed to process the refund. Please contact support." });
+    }
   })
 );
 

@@ -130,6 +130,8 @@ const apiService = {
   getServiceHistory: () => request(api.get("/api/client/service-history"), "Failed to fetch service history"),
   getEquipment: () => request(api.get("/api/client/equipment"), "Failed to fetch equipment data"),
   getMyPayments: () => request(api.get("/api/client/payments"), "Failed to fetch order history"),
+  cancelOrder: (id, reason) =>
+    request(api.put(`/api/client/payments/${id}/cancel`, { reason }), "Failed to cancel order"),
   submitFeedback: (feedbackData) =>
     request(api.post("/api/client/feedback", feedbackData), "Failed to submit feedback"),
   submitContact: (contactData) =>
@@ -146,6 +148,8 @@ const apiService = {
   banUser: (id, banned) =>
     request(api.put(`/api/admin/users/${id}/ban`, { banned }), "Failed to update ban status"),
   getPayments: (params) => request(api.get("/api/admin/payments", { params }), "Failed to fetch payments"),
+  updateOrderStatus: (id, data) =>
+    request(api.put(`/api/admin/payments/${id}/status`, data), "Failed to update order status"),
   getServiceRequests: (params) =>
     request(api.get("/api/admin/service-requests", { params }), "Failed to fetch service requests"),
   respondToServiceRequest: (id, data) =>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Receipt } from "lucide-react";
+import { Receipt, Truck, XCircle } from "lucide-react";
 import apiService from "../../services/api";
+import Button from "../UI/Button";
 import Spinner from "../UI/Spinner";
 import EmptyState from "../UI/EmptyState";
 
@@ -9,8 +10,20 @@ const STATUS_STYLES = {
   succeeded: "bg-green-100 text-green-800",
   pending: "bg-amber-100 text-amber-800",
   failed: "bg-red-100 text-red-800",
+  refunded: "bg-purple-100 text-purple-800",
   canceled: "bg-gray-200 text-gray-700",
 };
+
+const FULFILLMENT_LABELS = {
+  pending: "Order placed",
+  accepted: "Accepted",
+  processing: "Processing",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  canceled: "Canceled",
+};
+
+const CANCELABLE = ["pending", "accepted"];
 
 const formatAmount = (amount, currency) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency?.toUpperCase() || "USD" }).format(
@@ -21,14 +34,32 @@ function OrderHistory() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cancelingId, setCancelingId] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
     apiService
       .getMyPayments()
       .then(setOrders)
       .catch((err) => setError(err.message || "Failed to load order history"))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(load, []);
+
+  const handleCancel = async (order) => {
+    if (!window.confirm("Cancel this order? If you were already charged, you'll be refunded automatically."))
+      return;
+    setCancelingId(order.id);
+    try {
+      await apiService.cancelOrder(order.id);
+      setError("");
+      load();
+    } catch (err) {
+      setError(err.message || "Failed to cancel order");
+    } finally {
+      setCancelingId(null);
+    }
+  };
 
   return (
     <motion.section className="mb-12 bg-white rounded-lg shadow-md p-6">
@@ -48,24 +79,49 @@ function OrderHistory() {
             <div key={order.id} className="p-6 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex justify-between items-start mb-2">
                 <p className="font-semibold text-gray-800">{order.description}</p>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${STATUS_STYLES[order.status] || "bg-gray-100 text-gray-700"}`}>
+                <span
+                  className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${
+                    STATUS_STYLES[order.status] || "bg-gray-100 text-gray-700"
+                  }`}
+                >
                   {order.status}
                 </span>
               </div>
               <p className="text-primary font-bold text-lg mb-1">
                 {formatAmount(order.amount, order.currency)}
               </p>
-              <p className="text-gray-500 text-xs">
+              <p className="text-gray-500 text-xs mb-2">
                 {new Date(order.created_at).toLocaleDateString(undefined, {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
                 })}
               </p>
-              {order.status === "pending" && (
-                <p className="text-gray-400 text-xs mt-2">
-                  Awaiting payment confirmation.
+
+              <p className="text-sm font-medium text-gray-700 mb-1">
+                {FULFILLMENT_LABELS[order.fulfillment_status] || order.fulfillment_status}
+              </p>
+              {order.tracking_number && (
+                <p className="text-xs text-gray-500 flex items-center gap-1 mb-2">
+                  <Truck className="w-3.5 h-3.5" /> Tracking: {order.tracking_number}
                 </p>
+              )}
+              {order.status === "refunded" && (
+                <p className="text-xs text-purple-600 mb-2">Refunded{order.cancel_reason ? ` — ${order.cancel_reason}` : ""}</p>
+              )}
+              {order.status === "pending" && order.fulfillment_status === "pending" && (
+                <p className="text-gray-400 text-xs mb-2">Awaiting payment confirmation.</p>
+              )}
+
+              {CANCELABLE.includes(order.fulfillment_status) && (
+                <Button
+                  onClick={() => handleCancel(order)}
+                  disabled={cancelingId === order.id}
+                  className="mt-2 bg-red-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 disabled:opacity-60"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  {cancelingId === order.id ? "Canceling..." : "Cancel Order"}
+                </Button>
               )}
             </div>
           ))}
