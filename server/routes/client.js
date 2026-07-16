@@ -55,6 +55,43 @@ router.post(
 );
 
 /**
+ * @route GET /api/client/service-requests
+ */
+router.get(
+  "/service-requests",
+  auth,
+  asyncHandler(async (req, res) => {
+    const [requests] = await req.db.query(
+      `SELECT id, service_type, description, status, quote_amount_cents, quote_message, quoted_at, created_at
+       FROM service_requests WHERE user_id = ? ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    res.json(requests);
+  })
+);
+
+/**
+ * @route POST /api/client/service-requests
+ */
+router.post(
+  "/service-requests",
+  auth,
+  [
+    body("service_type").isString().trim().isLength({ min: 1, max: 150 }).withMessage("Service type is required"),
+    body("description").isString().trim().isLength({ min: 1, max: 3000 }).withMessage("Description is required"),
+  ],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const { service_type, description } = req.body;
+    const [result] = await req.db.query(
+      "INSERT INTO service_requests (user_id, service_type, description, status) VALUES (?, ?, ?, 'Pending')",
+      [req.user.id, service_type, description]
+    );
+    res.status(201).json({ id: result.insertId, success: true });
+  })
+);
+
+/**
  * @route POST /api/client/contact
  */
 router.post(

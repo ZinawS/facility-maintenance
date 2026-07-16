@@ -51,7 +51,17 @@ app.use(generalLimiter);
 app.use("/api/payments", paymentsWebhookRouter);
 
 app.use(express.json({ limit: "1mb" }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Uploaded images are meant to be embedded by the frontend on a different
+// origin (and eventually other consumers), so they need an explicit
+// cross-origin resource policy — helmet's default (same-origin) blocks the
+// browser from rendering them even though the request itself succeeds.
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"), {
+    setHeaders: (res) => res.setHeader("Cross-Origin-Resource-Policy", "cross-origin"),
+  })
+);
 
 // Provide the DB pool to every route via req.db.
 app.use((req, res, next) => {

@@ -40,19 +40,28 @@ CREATE TABLE IF NOT EXISTS equipment (
   user_id INT NOT NULL,
   model VARCHAR(150) NOT NULL,
   serial VARCHAR(100) NOT NULL,
-  lastService DATE NULL,
+  last_service DATE NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- A client submits a request (service_type + description); an admin
+-- responds with a quote (quote_amount_cents + quote_message, emailed to the
+-- customer) and/or a status change. Once quoted, the customer can pay for it
+-- via POST /api/payments/create { kind: 'service_request' } — the server
+-- reads quote_amount_cents itself, the client never supplies an amount.
 CREATE TABLE IF NOT EXISTS service_requests (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
+  user_id INT NULL,
   service_type VARCHAR(150) NOT NULL,
-  description TEXT NULL,
-  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  description TEXT NOT NULL,
+  status ENUM('Pending', 'In Progress', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Pending',
+  quote_amount_cents INT NULL,
+  quote_message TEXT NULL,
+  quoted_at TIMESTAMP NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- `type` distinguishes client feedback ('feedback') from public contact-form
@@ -69,6 +78,10 @@ CREATE TABLE IF NOT EXISTS feedback (
   comment TEXT NOT NULL,
   type ENUM('feedback', 'contact') NOT NULL DEFAULT 'feedback',
   status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  -- Unified "needs admin attention" flag for both contact messages (marked
+  -- read) and feedback submissions (set on approve/reject) — see
+  -- GET /api/admin/alerts.
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -83,6 +96,7 @@ CREATE TABLE IF NOT EXISTS payments (
   stripe_payment_intent_id VARCHAR(255) NOT NULL,
   plan_id INT NULL,
   part_id INT NULL,
+  service_request_id INT NULL,
   quantity INT NULL,
   amount DECIMAL(10, 2) NOT NULL,
   currency VARCHAR(10) NOT NULL DEFAULT 'usd',

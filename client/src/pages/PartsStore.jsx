@@ -8,6 +8,7 @@ import Button from "../components/UI/Button";
 import Spinner from "../components/UI/Spinner";
 import EmptyState from "../components/UI/EmptyState";
 import StripeCheckoutForm from "../components/UI/StripeCheckoutForm";
+import { resolveMediaUrl } from "../utils/media";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
@@ -112,7 +113,7 @@ function PartsStore() {
                 <div className="h-56 bg-gray-100 dark:bg-gray-900 overflow-hidden flex items-center justify-center">
                   {part.image_url ? (
                     <img
-                      src={part.image_url}
+                      src={resolveMediaUrl(part.image_url)}
                       alt={part.name}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                       loading="lazy"

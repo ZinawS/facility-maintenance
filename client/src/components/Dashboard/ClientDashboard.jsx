@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { motion } from "framer-motion";
 import { Wrench, Hammer } from "lucide-react";
 import FeedbackForm from "./FeedbackForm";
+import ServiceRequestPanel from "./ServiceRequestPanel";
 import EmptyState from "../UI/EmptyState";
 
 /**
@@ -99,11 +100,15 @@ function ClientDashboard({ serviceHistory, equipment }) {
                 <strong>Serial:</strong> {equip.serial}
               </p>
               <p className="text-gray-700">
-                <strong>Last Service:</strong> {equip.lastService}
+                <strong>Last Service:</strong> {equip.last_service}
               </p>
             </motion.div>
           ))}
         </div>
+      </motion.section>
+
+      <motion.section variants={sectionVariants}>
+        <ServiceRequestPanel />
       </motion.section>
 
       <motion.section variants={sectionVariants}>

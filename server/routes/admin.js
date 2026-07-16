@@ -5,6 +5,7 @@ const adminOnly = require("../middleware/adminOnly");
 const asyncHandler = require("../middleware/asyncHandler");
 const handleValidation = require("../middleware/handleValidation");
 const { getPagination, buildMeta } = require("../utils/paginate");
+const { sendMail } = require("../config/mailer");
 
 const router = express.Router();
 
@@ -87,12 +88,75 @@ router.get(
     const { page, limit, offset } = getPagination(req);
     const [[{ total }]] = await req.db.query("SELECT COUNT(*) AS total FROM service_requests");
     const [requests] = await req.db.query(
-      `SELECT s.id, s.user_id, s.service_type, s.description, s.status, s.created_at, u.name AS user_name
+      `SELECT s.id, s.user_id, s.service_type, s.description, s.status,
+              s.quote_amount_cents, s.quote_message, s.quoted_at, s.created_at,
+              u.name AS user_name, u.email AS user_email
        FROM service_requests s LEFT JOIN users u ON s.user_id = u.id
        ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
       [limit, offset]
     );
     res.json({ data: requests, meta: buildMeta({ page, limit }, total) });
+  })
+);
+
+/**
+ * @route PUT /api/admin/service-requests/:id
+ * Admin responds to a service request with a status change and/or a quote.
+ * When a quote is included, the customer is emailed the quote details.
+ */
+router.put(
+  "/service-requests/:id",
+  [
+    param("id").isInt(),
+    body("status").optional().isIn(["Pending", "In Progress", "Completed", "Cancelled"]),
+    body("quote_amount_cents").optional({ nullable: true }).isInt({ min: 100 }),
+    body("quote_message").optional({ nullable: true }).isString().trim().isLength({ max: 3000 }),
+  ],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const [rows] = await req.db.query(
+      `SELECT s.*, u.email AS user_email, u.name AS user_name
+       FROM service_requests s LEFT JOIN users u ON s.user_id = u.id WHERE s.id = ?`,
+      [req.params.id]
+    );
+    const request = rows[0];
+    if (!request) return res.status(404).json({ message: "Service request not found" });
+
+    const { status, quote_amount_cents, quote_message } = req.body;
+    const hasQuote = quote_amount_cents !== undefined || quote_message !== undefined;
+
+    const updates = [];
+    const values = [];
+    if (status) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+    if (hasQuote) {
+      updates.push("quote_amount_cents = ?", "quote_message = ?", "quoted_at = NOW()");
+      values.push(quote_amount_cents ?? null, quote_message ?? null);
+    }
+    if (!updates.length) return res.status(400).json({ message: "Nothing to update" });
+
+    await req.db.query(`UPDATE service_requests SET ${updates.join(", ")} WHERE id = ?`, [
+      ...values,
+      req.params.id,
+    ]);
+
+    if (hasQuote && request.user_email) {
+      await sendMail({
+        to: request.user_email,
+        subject: `Quote for your ${request.service_type} request`,
+        html: `<p>Hi ${request.user_name || "there"},</p>
+               <p>Here's a quote for your service request (${request.service_type}):</p>
+               <p><strong>${
+                 quote_amount_cents != null ? `$${(quote_amount_cents / 100).toFixed(2)}` : ""
+               }</strong></p>
+               <p>${quote_message || ""}</p>
+               <p>Log in to your dashboard to review and pay online.</p>`,
+      });
+    }
+
+    res.json({ success: true });
   })
 );
 
@@ -143,9 +207,10 @@ router.post(
   [param("id").isInt()],
   handleValidation,
   asyncHandler(async (req, res) => {
-    const [result] = await req.db.query("UPDATE feedback SET status = 'approved' WHERE id = ?", [
-      req.params.id,
-    ]);
+    const [result] = await req.db.query(
+      "UPDATE feedback SET status = 'approved', is_read = 1 WHERE id = ?",
+      [req.params.id]
+    );
     if (!result.affectedRows) return res.status(404).json({ message: "Feedback not found" });
     res.json({ success: true });
   })
@@ -159,11 +224,65 @@ router.post(
   [param("id").isInt()],
   handleValidation,
   asyncHandler(async (req, res) => {
-    const [result] = await req.db.query("UPDATE feedback SET status = 'rejected' WHERE id = ?", [
-      req.params.id,
-    ]);
+    const [result] = await req.db.query(
+      "UPDATE feedback SET status = 'rejected', is_read = 1 WHERE id = ?",
+      [req.params.id]
+    );
     if (!result.affectedRows) return res.status(404).json({ message: "Feedback not found" });
     res.json({ success: true });
+  })
+);
+
+/**
+ * @route PUT /api/admin/contact-messages/:id/read
+ */
+router.put(
+  "/contact-messages/:id/read",
+  [param("id").isInt()],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const [result] = await req.db.query(
+      "UPDATE feedback SET is_read = 1 WHERE id = ? AND type = 'contact'",
+      [req.params.id]
+    );
+    if (!result.affectedRows) return res.status(404).json({ message: "Contact message not found" });
+    res.json({ success: true });
+  })
+);
+
+/**
+ * @route GET /api/admin/alerts
+ * Aggregates everything currently awaiting admin action: unread contact
+ * messages, unreviewed feedback, and service requests that haven't been
+ * quoted yet. Each item carries enough to render + act on it directly.
+ */
+router.get(
+  "/alerts",
+  asyncHandler(async (req, res) => {
+    const [[contactMessages], [feedback], [serviceRequests]] = await Promise.all([
+      req.db.query(
+        `SELECT id, name, company, email, phone, equipment_type, comment AS message, created_at
+         FROM feedback WHERE type = 'contact' AND is_read = 0 ORDER BY created_at ASC`
+      ),
+      req.db.query(
+        `SELECT f.id, f.comment, f.created_at, u.name AS user_name
+         FROM feedback f LEFT JOIN users u ON f.user_id = u.id
+         WHERE f.type = 'feedback' AND f.is_read = 0 ORDER BY f.created_at ASC`
+      ),
+      req.db.query(
+        `SELECT s.id, s.service_type, s.description, s.status, s.created_at, u.name AS user_name
+         FROM service_requests s LEFT JOIN users u ON s.user_id = u.id
+         WHERE s.status = 'Pending' AND s.quote_amount_cents IS NULL ORDER BY s.created_at ASC`
+      ),
+    ]);
+
+    const items = [
+      ...contactMessages.map((m) => ({ type: "contact_message", ...m })),
+      ...feedback.map((f) => ({ type: "feedback", ...f })),
+      ...serviceRequests.map((s) => ({ type: "service_request", ...s })),
+    ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    res.json({ total: items.length, items });
   })
 );
 

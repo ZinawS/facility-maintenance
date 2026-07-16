@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   AlertCircle,
   CheckCircle,
+  Bell,
   BarChart3,
   LayoutGrid,
   Users as UsersIcon,
@@ -25,9 +26,12 @@ import FeedbackApproval from "./FeedbackApproval";
 import ResourceManager from "./ResourceManager";
 import SiteSettingsPanel from "./SiteSettingsPanel";
 import Reports from "./Reports";
+import AlertsPanel from "./AlertsPanel";
 import Spinner from "../UI/Spinner";
+import { resolveMediaUrl } from "../../utils/media";
 
 const TABS = [
+  { key: "alerts", label: "Alerts", icon: <Bell className="w-4 h-4" /> },
   { key: "reports", label: "Reports", icon: <BarChart3 className="w-4 h-4" /> },
   { key: "content", label: "Content", icon: <LayoutGrid className="w-4 h-4" /> },
   { key: "users", label: "Users", icon: <UsersIcon className="w-4 h-4" /> },
@@ -104,7 +108,8 @@ const resourceApi = (plural, singular) => ({
 });
 
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("reports");
+  const [activeTab, setActiveTab] = useState("alerts");
+  const [alertCount, setAlertCount] = useState(0);
   const [users, setUsers] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [blogs, setBlogs] = useState([]);
@@ -184,7 +189,7 @@ function AdminDashboard() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${
+            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${
               activeTab === tab.key
                 ? "bg-primary text-white shadow-md"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -192,6 +197,11 @@ function AdminDashboard() {
           >
             {tab.icon}
             {tab.label}
+            {tab.key === "alerts" && alertCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                {alertCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -200,6 +210,7 @@ function AdminDashboard() {
         <Spinner size="lg" />
       ) : (
         <>
+          {activeTab === "alerts" && <AlertsPanel onCountChange={setAlertCount} />}
           {activeTab === "reports" && <Reports />}
 
           {activeTab === "content" && (
@@ -212,6 +223,13 @@ function AdminDashboard() {
                 hasImage
                 renderPreview={(item) => (
                   <>
+                    {item.image_url && (
+                      <img
+                        src={resolveMediaUrl(item.image_url)}
+                        alt={item.name}
+                        className="w-full h-24 object-cover rounded mb-2"
+                      />
+                    )}
                     <p className="font-semibold">{item.name}</p>
                     <p className="text-sm text-gray-500">{item.short_description}</p>
                   </>
@@ -225,6 +243,13 @@ function AdminDashboard() {
                 hasImage
                 renderPreview={(item) => (
                   <>
+                    {item.image_url && (
+                      <img
+                        src={resolveMediaUrl(item.image_url)}
+                        alt={item.name}
+                        className="w-full h-24 object-cover rounded mb-2"
+                      />
+                    )}
                     <p className="font-semibold">{item.name}</p>
                     <p className="text-sm text-gray-500">{item.role}</p>
                   </>
@@ -264,6 +289,13 @@ function AdminDashboard() {
                 hasImage
                 renderPreview={(item) => (
                   <>
+                    {item.image_url && (
+                      <img
+                        src={resolveMediaUrl(item.image_url)}
+                        alt={item.name}
+                        className="w-full h-24 object-cover rounded mb-2"
+                      />
+                    )}
                     <p className="font-semibold">{item.name}</p>
                     <p className="text-sm text-gray-500">${(item.price_cents / 100).toFixed(2)}</p>
                   </>
@@ -295,7 +327,7 @@ function AdminDashboard() {
           {activeTab === "operations" && (
             <>
               <PaymentsList payments={payments} />
-              <ServiceRequestsList serviceRequests={serviceRequests} />
+              <ServiceRequestsList serviceRequests={serviceRequests} setServiceRequests={setServiceRequests} />
               <ContactMessagesList contactMessages={contactMessages} />
               <FeedbackApproval
                 feedback={feedback}

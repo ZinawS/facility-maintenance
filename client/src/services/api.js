@@ -133,6 +133,10 @@ const apiService = {
     request(api.post("/api/client/feedback", feedbackData), "Failed to submit feedback"),
   submitContact: (contactData) =>
     request(api.post("/api/client/contact", contactData), "Failed to send message"),
+  getMyServiceRequests: () =>
+    request(api.get("/api/client/service-requests"), "Failed to fetch service requests"),
+  submitServiceRequest: (data) =>
+    request(api.post("/api/client/service-requests", data), "Failed to submit service request"),
 
   // --- Admin: users / payments / service requests / contact messages / feedback (paginated) ---
   getUsers: (params) => request(api.get("/api/admin/users", { params }), "Failed to fetch users"),
@@ -143,13 +147,18 @@ const apiService = {
   getPayments: (params) => request(api.get("/api/admin/payments", { params }), "Failed to fetch payments"),
   getServiceRequests: (params) =>
     request(api.get("/api/admin/service-requests", { params }), "Failed to fetch service requests"),
+  respondToServiceRequest: (id, data) =>
+    request(api.put(`/api/admin/service-requests/${id}`, data), "Failed to update service request"),
   getContactMessages: (params) =>
     request(api.get("/api/admin/contact-messages", { params }), "Failed to fetch contact messages"),
+  markContactMessageRead: (id) =>
+    request(api.put(`/api/admin/contact-messages/${id}/read`, {}), "Failed to mark message as read"),
   getFeedback: (params) => request(api.get("/api/admin/feedback", { params }), "Failed to fetch feedback"),
   approveFeedback: (id) =>
     request(api.post(`/api/admin/feedback/approve/${id}`, {}), "Failed to approve feedback"),
   rejectFeedback: (id) =>
     request(api.post(`/api/admin/feedback/reject/${id}`, {}), "Failed to reject feedback"),
+  getAlerts: () => request(api.get("/api/admin/alerts"), "Failed to fetch alerts"),
 
   // --- Blog (admin-managed) ---
   getBlogs: () => request(api.get("/api/admin/blogs"), "Failed to fetch blogs"),
@@ -234,6 +243,11 @@ const apiService = {
   createCustomPayment: (amount, description) =>
     request(
       api.post("/api/payments/create", { kind: "custom", amount, description }),
+      "Failed to start checkout"
+    ),
+  createServiceRequestPayment: (serviceRequestId) =>
+    request(
+      api.post("/api/payments/create", { kind: "service_request", serviceRequestId }),
       "Failed to start checkout"
     ),
 };

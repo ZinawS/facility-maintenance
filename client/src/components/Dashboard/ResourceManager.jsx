@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, X } from "lucide-react";
 import Button from "../UI/Button";
 import Spinner from "../UI/Spinner";
 import EmptyState from "../UI/EmptyState";
+import { resolveMediaUrl } from "../../utils/media";
 
 function emptyValues(fields) {
   const values = {};
@@ -40,6 +41,7 @@ function ResourceManager({ title, icon, api, fields, hasImage = false, renderPre
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyValues(fields));
   const [imageFile, setImageFile] = useState(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -62,6 +64,7 @@ function ResourceManager({ title, icon, api, fields, hasImage = false, renderPre
   const openCreate = () => {
     setForm(emptyValues(fields));
     setImageFile(null);
+    setCurrentImageUrl(null);
     setEditingId(null);
     setIsFormOpen(true);
   };
@@ -69,6 +72,7 @@ function ResourceManager({ title, icon, api, fields, hasImage = false, renderPre
   const openEdit = (item) => {
     setForm(toFormValues(item, fields));
     setImageFile(null);
+    setCurrentImageUrl(item.image_url || null);
     setEditingId(item.id);
     setIsFormOpen(true);
   };
@@ -175,6 +179,13 @@ function ResourceManager({ title, icon, api, fields, hasImage = false, renderPre
           {hasImage && (
             <div>
               <label className="block font-medium mb-1 text-sm text-gray-700 dark:text-gray-200">Image</label>
+              {(imageFile || currentImageUrl) && (
+                <img
+                  src={imageFile ? URL.createObjectURL(imageFile) : resolveMediaUrl(currentImageUrl)}
+                  alt="Current"
+                  className="w-32 h-32 object-cover rounded-lg mb-2 border border-gray-200 dark:border-gray-700"
+                />
+              )}
               <input
                 type="file"
                 accept="image/*"

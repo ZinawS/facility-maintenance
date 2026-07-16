@@ -13,6 +13,7 @@ import {
 import { Tilt } from "react-tilt";
 import { useInView } from "react-intersection-observer";
 import apiService from "../services/api";
+import { resolveMediaUrl } from "../utils/media";
 import Button from "../components/UI/Button";
 import BlogSection from "../components/Blog/BlogSection";
 import Testimonials from "../components/Testimonial/Testimonials";
@@ -215,7 +216,7 @@ const Home = memo(() => {
                       <div className="h-48 bg-gray-100 overflow-hidden flex items-center justify-center">
                         {service.image_url ? (
                           <img
-                            src={service.image_url}
+                            src={resolveMediaUrl(service.image_url)}
                             alt={service.name}
                             className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                             loading="lazy"

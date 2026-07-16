@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Info, Users, Heart, Target, Globe, UserRound } from "lucide-react";
 import apiService from "../services/api";
 import EmptyState from "../components/UI/EmptyState";
+import { resolveMediaUrl } from "../utils/media";
 import culture from "../assets/images/culture.png"
 import teamWork from "../assets/images/teamWork.png"
 
@@ -180,7 +181,7 @@ function About() {
                   <div className="h-60 bg-gray-100 overflow-hidden flex items-center justify-center">
                     {member.image_url ? (
                       <img
-                        src={member.image_url}
+                        src={resolveMediaUrl(member.image_url)}
                         alt={member.name}
                         className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                         loading="lazy"

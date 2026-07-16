@@ -5,6 +5,7 @@ import * as Icons from "lucide-react";
 import apiService from "../services/api";
 import Button from "../components/UI/Button";
 import Spinner from "../components/UI/Spinner";
+import { resolveMediaUrl } from "../utils/media";
 
 /**
  * Dynamic service detail page, backed entirely by the admin-managed
@@ -71,7 +72,7 @@ function ServiceDetail() {
 
         {service.image_url && (
           <img
-            src={service.image_url}
+            src={resolveMediaUrl(service.image_url)}
             alt={service.name}
             className="w-full h-64 object-cover rounded-2xl mb-8 shadow-lg"
           />

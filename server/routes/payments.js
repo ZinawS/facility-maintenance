@@ -27,7 +27,9 @@ router.post(
   "/create",
   optionalAuth,
   [
-    body("kind").isIn(["plan", "part", "custom"]).withMessage("kind must be plan, part, or custom"),
+    body("kind")
+      .isIn(["plan", "part", "custom", "service_request"])
+      .withMessage("kind must be plan, part, custom, or service_request"),
     body("planId")
       .if((value, { req }) => req.body.kind === "plan")
       .isInt()
@@ -36,6 +38,10 @@ router.post(
       .if((value, { req }) => req.body.kind === "part")
       .isInt()
       .withMessage("partId is required"),
+    body("serviceRequestId")
+      .if((value, { req }) => req.body.kind === "service_request")
+      .isInt()
+      .withMessage("serviceRequestId is required"),
     body("quantity")
       .if((value, { req }) => req.body.kind === "part")
       .optional()
@@ -59,9 +65,24 @@ router.post(
     let description;
     let planId = null;
     let partId = null;
+    let serviceRequestId = null;
     let quantity = null;
 
-    if (kind === "plan") {
+    if (kind === "service_request") {
+      if (!req.user) return res.status(401).json({ message: "Please log in to pay for a service request" });
+      const [requests] = await req.db.query(
+        "SELECT * FROM service_requests WHERE id = ? AND user_id = ?",
+        [req.body.serviceRequestId, req.user.id]
+      );
+      const request = requests[0];
+      if (!request) return res.status(404).json({ message: "Service request not found" });
+      if (request.quote_amount_cents === null) {
+        return res.status(400).json({ message: "This request hasn't been quoted yet" });
+      }
+      serviceRequestId = request.id;
+      amount = request.quote_amount_cents;
+      description = `Service Request: ${request.service_type}`;
+    } else if (kind === "plan") {
       const [plans] = await req.db.query(
         "SELECT * FROM service_plans WHERE id = ? AND is_active = 1",
         [req.body.planId]
@@ -94,14 +115,29 @@ router.post(
       currency: "usd",
       description,
       payment_method_types: ["card"],
-      metadata: { kind, planId: planId ?? "", partId: partId ?? "", userId: req.user?.id ?? "" },
+      metadata: {
+        kind,
+        planId: planId ?? "",
+        partId: partId ?? "",
+        serviceRequestId: serviceRequestId ?? "",
+        userId: req.user?.id ?? "",
+      },
     });
 
     await req.db.query(
       `INSERT INTO payments
-        (user_id, stripe_payment_intent_id, plan_id, part_id, quantity, amount, currency, description, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'usd', ?, 'pending')`,
-      [req.user?.id ?? null, paymentIntent.id, planId, partId, quantity, amount / 100, description]
+        (user_id, stripe_payment_intent_id, plan_id, part_id, service_request_id, quantity, amount, currency, description, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'usd', ?, 'pending')`,
+      [
+        req.user?.id ?? null,
+        paymentIntent.id,
+        planId,
+        partId,
+        serviceRequestId,
+        quantity,
+        amount / 100,
+        description,
+      ]
     );
 
     res.status(201).json({ clientSecret: paymentIntent.client_secret });

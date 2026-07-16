@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FileText, Edit, Plus, X } from "lucide-react";
+import { FileText, Edit, Plus, Trash2 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import Prism from "prismjs";
 import "prismjs/themes/prism-tomorrow.css"; // You can change theme
 import apiService from "../../services/api";
 import Button from "../UI/Button";
+import EmptyState from "../UI/EmptyState";
 
 const quillModules = {
   toolbar: [
@@ -48,11 +49,11 @@ function BlogManagement({ blogs, setBlogs, setSuccess, setError }) {
         );
         setSuccess("Blog updated successfully");
       } else {
-        await apiService.createBlog(payload);
+        const created = await apiService.createBlog(payload);
         setBlogs([
           ...blogs,
           {
-            id: Date.now(),
+            id: created.id,
             ...payload,
             author: "Admin",
             created_at: new Date(),
@@ -75,6 +76,19 @@ function BlogManagement({ blogs, setBlogs, setSuccess, setError }) {
     setBlogForm({ id: blog.id, title: blog.title, content: blog.content });
     setIsEditing(true);
     setIsBlogFormOpen(true);
+  };
+
+  const handleDeleteBlog = async (blog) => {
+    if (!window.confirm(`Delete "${blog.title}"? This can't be undone.`)) return;
+    try {
+      await apiService.deleteBlog(blog.id);
+      setBlogs(blogs.filter((b) => b.id !== blog.id));
+      setSuccess("Blog deleted successfully");
+      setError("");
+    } catch (err) {
+      setError(err.message || "Failed to delete blog");
+      setSuccess("");
+    }
   };
 
   return (
@@ -135,8 +149,9 @@ function BlogManagement({ blogs, setBlogs, setSuccess, setError }) {
         </form>
       )}
 
+      {blogs.length === 0 && <EmptyState message="No blog posts yet." />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {blogs.map((blog, index) => (
+        {blogs.map((blog) => (
           <motion.div
             key={blog.id}
             className="p-6 bg-white rounded-lg shadow-md border border-gray-200"
@@ -146,13 +161,22 @@ function BlogManagement({ blogs, setBlogs, setSuccess, setError }) {
               className="prose prose-sm max-w-none text-gray-700"
               dangerouslySetInnerHTML={{ __html: blog.content }}
             />
-            <Button
-              onClick={() => handleEditBlog(blog)}
-              className="mt-4 bg-teal-500 text-white px-4 py-2 rounded-lg"
-            >
-              <Edit className="w-5 h-5 mr-2" />
-              Edit
-            </Button>
+            <div className="flex gap-2 mt-4">
+              <Button
+                onClick={() => handleEditBlog(blog)}
+                className="bg-teal-500 text-white px-4 py-2 rounded-lg"
+              >
+                <Edit className="w-5 h-5 mr-2" />
+                Edit
+              </Button>
+              <Button
+                onClick={() => handleDeleteBlog(blog)}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg"
+              >
+                <Trash2 className="w-5 h-5 mr-2" />
+                Delete
+              </Button>
+            </div>
           </motion.div>
         ))}
       </div>
