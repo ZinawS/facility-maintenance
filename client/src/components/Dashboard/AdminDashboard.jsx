@@ -27,6 +27,7 @@ import ResourceManager from "./ResourceManager";
 import SiteSettingsPanel from "./SiteSettingsPanel";
 import LegalDocumentsPanel from "./LegalDocumentsPanel";
 import Reports from "./Reports";
+import Ledger from "./Ledger";
 import AlertsPanel from "./AlertsPanel";
 import Spinner from "../UI/Spinner";
 import { resolveMediaUrl } from "../../utils/media";
@@ -212,7 +213,12 @@ function AdminDashboard() {
       ) : (
         <>
           {activeTab === "alerts" && <AlertsPanel onCountChange={setAlertCount} />}
-          {activeTab === "reports" && <Reports />}
+          {activeTab === "reports" && (
+            <>
+              <Reports />
+              <Ledger />
+            </>
+          )}
 
           {activeTab === "content" && (
             <>

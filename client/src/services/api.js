@@ -260,6 +260,22 @@ const apiService = {
     }
   },
 
+  // --- Ledger (income derived from payments + manually-entered expenses) ---
+  getLedger: (params) => request(api.get("/api/admin/ledger", { params }), "Failed to fetch ledger"),
+  async exportLedger(params) {
+    try {
+      const response = await api.get("/api/admin/ledger/export", { params, responseType: "blob" });
+      return response.data;
+    } catch (err) {
+      throw new Error("Failed to export ledger");
+    }
+  },
+  getExpenses: () => request(api.get("/api/admin/expenses"), "Failed to fetch expenses"),
+  createExpense: (expense) => request(api.post("/api/admin/expenses", expense), "Failed to create expense"),
+  updateExpense: (id, expense) =>
+    request(api.put(`/api/admin/expenses/${id}`, expense), "Failed to update expense"),
+  deleteExpense: (id) => request(api.delete(`/api/admin/expenses/${id}`), "Failed to delete expense"),
+
   // --- Payments (server computes the amount; the client only references a
   // catalog item, or provides a bounded custom amount for ad-hoc quotes) ---
   createPlanPayment: (planId) =>
