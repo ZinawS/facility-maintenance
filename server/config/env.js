@@ -4,7 +4,16 @@ const path = require("path");
 // with its cwd set to the app root rather than this file's directory,
 // which made dotenv silently find nothing and fall through to whatever
 // the platform happened to inject directly into process.env.
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+//
+// override: true — dotenv's default leaves any var already present in
+// process.env untouched. Some host panels inject their own copies of
+// these same variable names (e.g. a JWT_SECRET set once when the app
+// was first created in the panel's UI) directly into the environment
+// before this file ever runs, which then silently wins over — and can
+// drift out of sync with — this file. This app's .env is the single
+// source of truth; it should never lose quietly to an untracked value
+// neither committed to the repo nor visible anywhere on disk.
+require("dotenv").config({ path: path.join(__dirname, "..", ".env"), override: true });
 
 const REQUIRED_VARS = [
   "DB_HOST",
