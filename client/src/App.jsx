@@ -62,7 +62,14 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/parts" element={<PartsStore />} />
+              <Route
+                path="/parts"
+                element={
+                  <ProtectedRoute>
+                    <PartsStore />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:id" element={<BlogDetail />} />
               <Route path="/faq" element={<FAQ />} />

@@ -97,12 +97,16 @@ router.post(
       amount = plan.price_cents;
       description = `Service Plan: ${plan.name}`;
     } else if (kind === "part") {
+      if (!req.user) return res.status(401).json({ message: "Please log in to order parts" });
       quantity = req.body.quantity || 1;
       const [parts] = await req.db.query("SELECT * FROM parts WHERE id = ? AND is_active = 1", [
         req.body.partId,
       ]);
       const part = parts[0];
       if (!part) return res.status(404).json({ message: "Part not found" });
+      if (part.stock_quantity < quantity) {
+        return res.status(400).json({ message: "Not enough stock available" });
+      }
       partId = part.id;
       amount = part.price_cents * quantity;
       description = `${quantity} x ${part.name}`;
@@ -189,23 +193,40 @@ webhookRouter.post(
     const nextStatus = statusByEvent[event.type];
 
     if (nextStatus) {
+      // Stripe can and does redeliver the same event, so re-running the
+      // succeeded side effects (stock decrement, invoice email) on a
+      // payment that's already 'succeeded' would double them — fetch the
+      // prior status first and only treat this as a fresh success once.
+      const [beforeRows] = await req.db.query(
+        `SELECT p.*, u.name AS customer_name, u.email AS customer_email
+         FROM payments p LEFT JOIN users u ON p.user_id = u.id
+         WHERE p.stripe_payment_intent_id = ?`,
+        [intent.id]
+      );
+      const wasAlreadySucceeded = beforeRows[0]?.status === "succeeded";
+
       await req.db.query(
         "UPDATE payments SET status = ? WHERE stripe_payment_intent_id = ?",
         [nextStatus, intent.id]
       );
 
-      if (nextStatus === "succeeded") {
+      if (nextStatus === "succeeded" && !wasAlreadySucceeded) {
         // Best-effort: a failure here shouldn't fail the webhook response
         // (Stripe retries on non-2xx), since the payment itself is already
         // recorded — the invoice can still be generated on demand later.
         try {
-          const [rows] = await req.db.query(
-            `SELECT p.*, u.name AS customer_name, u.email AS customer_email
-             FROM payments p LEFT JOIN users u ON p.user_id = u.id
-             WHERE p.stripe_payment_intent_id = ?`,
-            [intent.id]
-          );
-          const payment = rows[0];
+          const payment = beforeRows[0];
+
+          if (payment?.part_id) {
+            // Floor at 0 rather than trusting the pre-checkout stock check
+            // alone — two near-simultaneous purchases of the last unit both
+            // pass that check before either payment lands here.
+            await req.db.query(
+              "UPDATE parts SET stock_quantity = GREATEST(stock_quantity - ?, 0) WHERE id = ?",
+              [payment.quantity || 1, payment.part_id]
+            );
+          }
+
           if (payment?.customer_email) {
             const invoice = await ensureInvoice(req.db, payment);
             const settings = await getSettingsMap(req.db);
