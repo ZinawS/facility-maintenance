@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const compression = require("compression");
 const path = require("path");
+const fs = require("fs");
 const pinoHttp = require("pino-http");
 
 const env = require("./config/env");
@@ -91,6 +92,18 @@ app.use("/api/payments", paymentsRoutes);
 app.use("/api/public/legal", legalPublicRoutes);
 app.use("/api/admin/legal", legalAdminRoutes);
 mountContentRoutes(app);
+
+// When deployed as a single service (build script builds client/dist
+// alongside the server), serve the built SPA from here. In the two-container
+// Docker setup the server image never has client/dist, so this is skipped.
+const clientDist = path.join(__dirname, "..", "client", "dist");
+const clientIndex = path.join(clientDist, "index.html");
+if (fs.existsSync(clientIndex)) {
+  app.use(express.static(clientDist));
+  app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
+    res.sendFile(clientIndex);
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);
