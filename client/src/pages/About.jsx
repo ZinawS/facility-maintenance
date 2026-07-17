@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Info, Users, Heart, Target, Globe, UserRound } from "lucide-react";
 import apiService from "../services/api";
 import EmptyState from "../components/UI/EmptyState";
+import Seo from "../components/UI/Seo";
 import { resolveMediaUrl } from "../utils/media";
 import culture from "../assets/images/culture.png"
 import teamWork from "../assets/images/teamWork.png"
@@ -39,7 +40,13 @@ function About() {
   };
 
   return (
-    <motion.div
+    <>
+      <Seo
+        title="About Us"
+        description="Learn about One-Stop Utility Service — our story, our team, and our commitment to reliable commercial HVAC and refrigeration maintenance in the DC metro area."
+        path="/about"
+      />
+      <motion.div
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
@@ -281,6 +288,7 @@ function About() {
         </motion.section>
       </div>
     </motion.div>
+    </>
   );
 }
 

@@ -5,6 +5,7 @@ import apiService from "../services/api";
 import Button from "../components/UI/Button";
 import Spinner from "../components/UI/Spinner";
 import EmptyState from "../components/UI/EmptyState";
+import Seo from "../components/UI/Seo";
 
 const isDirectVideoFile = (url) => /\.(mp4|webm|ogg)$/i.test(url);
 
@@ -39,7 +40,13 @@ function KnowledgeBase() {
   };
 
   return (
-    <motion.div
+    <>
+      <Seo
+        title="Knowledge Base"
+        description="Troubleshooting guides and video tutorials for common HVAC and refrigeration issues, from our facility maintenance experts."
+        path="/knowledge-base"
+      />
+      <motion.div
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
@@ -134,6 +141,7 @@ function KnowledgeBase() {
         </>
       )}
     </motion.div>
+    </>
   );
 }
 

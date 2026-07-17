@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import apiService from "../services/api";
 import Spinner from "../components/UI/Spinner";
 import EmptyState from "../components/UI/EmptyState";
+import Seo from "../components/UI/Seo";
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 30 },
@@ -31,7 +32,13 @@ function Services() {
   }, []);
 
   return (
-    <motion.div
+    <>
+      <Seo
+        title="Our Services"
+        description="Commercial HVAC maintenance, walk-in cooler/freezer service, refrigeration, installation, energy audits, and indoor air quality solutions."
+        path="/services"
+      />
+      <motion.div
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
@@ -132,6 +139,7 @@ function Services() {
         </motion.section>
       </div>
     </motion.div>
+    </>
   );
 }
 

@@ -13,6 +13,7 @@ import {
 import { Tilt } from "react-tilt";
 import { useInView } from "react-intersection-observer";
 import apiService from "../services/api";
+import Seo from "../components/UI/Seo";
 import { resolveMediaUrl } from "../utils/media";
 import Button from "../components/UI/Button";
 import BlogSection from "../components/Blog/BlogSection";
@@ -89,7 +90,13 @@ const Home = memo(() => {
   };
 
   return (
-    <div className="relative font-sans overflow-hidden">
+    <>
+      <Seo
+        title="Home"
+        description="Commercial HVAC, refrigeration, and facility maintenance in Alexandria, VA and the DC metro area. Book a service call, explore maintenance plans, or shop replacement parts."
+        path="/"
+      />
+      <div className="relative font-sans overflow-hidden">
       {/* Hero Section */}
       <motion.section
         ref={heroRef}
@@ -394,6 +401,7 @@ const Home = memo(() => {
         </div>
       </section>
     </div>
+    </>
   );
 });
 

@@ -4,6 +4,7 @@ import { HelpCircle } from "lucide-react";
 import apiService from "../services/api";
 import Spinner from "../components/UI/Spinner";
 import EmptyState from "../components/UI/EmptyState";
+import Seo from "../components/UI/Seo";
 
 /**
  * FAQ page, backed by the admin-managed /api/public/faqs resource.
@@ -32,7 +33,13 @@ function FAQ() {
   };
 
   return (
-    <motion.div
+    <>
+      <Seo
+        title="Frequently Asked Questions"
+        description="Answers to common questions about HVAC maintenance schedules, walk-in cooler troubleshooting, financing, and commercial rooftop unit lifespan."
+        path="/faq"
+      />
+      <motion.div
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
@@ -63,6 +70,7 @@ function FAQ() {
         ))}
       </div>
     </motion.div>
+    </>
   );
 }
 

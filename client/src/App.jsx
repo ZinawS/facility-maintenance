@@ -19,7 +19,8 @@ const Register = lazy(() => import('./components/Auth/Register'));
 const ForgotPassword = lazy(() => import('./components/Auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./components/Auth/ResetPassword'));
 const PartsStore = lazy(() => import('./pages/PartsStore'));
-const Testimonials = lazy(() => import('./pages/Testimonials'));
+const Blog = lazy(() => import('./pages/Blog'));
+const BlogDetail = lazy(() => import('./pages/BlogDetail'));
 const FAQ = lazy(() => import('./pages/FAQ'));
 const ServicePlans = lazy(() => import('./pages/ServicePlans'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
@@ -62,7 +63,8 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/parts" element={<PartsStore />} />
-              <Route path="/testimonials" element={<Testimonials />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:id" element={<BlogDetail />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/service-plans" element={<ServicePlans />} />
               <Route path="/knowledge-base" element={<KnowledgeBase />} />

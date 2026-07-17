@@ -7,6 +7,7 @@ import {
   Wrench,
   Store,
   HelpCircle,
+  Newspaper,
 } from "lucide-react";
 import { Link } from "react-router-dom"
 import useSiteSettings from "../../hooks/useSiteSettings"
@@ -53,6 +54,7 @@ function Footer() {
       icon: <Store className="w-5 h-5" />,
     },
     { path: "/faq", label: "FAQ", icon: <HelpCircle className="w-5 h-5" /> },
+    { path: "/blog", label: "Blog", icon: <Newspaper className="w-5 h-5" /> },
   ];
 
   return (

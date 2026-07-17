@@ -8,6 +8,7 @@ import Button from "../components/UI/Button";
 import Spinner from "../components/UI/Spinner";
 import EmptyState from "../components/UI/EmptyState";
 import StripeCheckoutForm from "../components/UI/StripeCheckoutForm";
+import Seo from "../components/UI/Seo";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
@@ -35,7 +36,13 @@ function ServicePlans() {
   };
 
   return (
-    <motion.div
+    <>
+      <Seo
+        title="Service Plans"
+        description="Compare our commercial HVAC and refrigeration maintenance plans and choose the coverage that fits your facility."
+        path="/service-plans"
+      />
+      <motion.div
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
@@ -135,6 +142,7 @@ function ServicePlans() {
         )}
       </div>
     </motion.div>
+    </>
   );
 }
 

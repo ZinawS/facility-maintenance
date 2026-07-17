@@ -9,6 +9,7 @@ import Spinner from "../components/UI/Spinner";
 import EmptyState from "../components/UI/EmptyState";
 import StripeCheckoutForm from "../components/UI/StripeCheckoutForm";
 import { resolveMediaUrl } from "../utils/media";
+import Seo from "../components/UI/Seo";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
@@ -40,7 +41,13 @@ function PartsStore() {
   };
 
   return (
-    <motion.div
+    <>
+      <Seo
+        title="Parts Store"
+        description="Shop replacement parts for commercial HVAC and refrigeration systems, with fast shipping and a 30-day money-back guarantee."
+        path="/parts"
+      />
+      <motion.div
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
@@ -166,6 +173,7 @@ function PartsStore() {
         </motion.section>
       </div>
     </motion.div>
+    </>
   );
 }
 

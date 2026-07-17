@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Button from "../components/UI/Button";
 import Spinner from "../components/UI/Spinner";
+import Seo from "../components/UI/Seo";
 import apiService from "../services/api";
 import useSiteSettings from "../hooks/useSiteSettings";
 
@@ -97,7 +98,13 @@ function Contact() {
   ].filter(Boolean);
 
   return (
-    <motion.div
+    <>
+      <Seo
+        title="Contact Us"
+        description="Get in touch with One-Stop Utility Service for a quote, emergency HVAC or refrigeration service, or general questions. Call, email, or send us a message."
+        path="/contact"
+      />
+      <motion.div
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
@@ -326,6 +333,7 @@ function Contact() {
         </motion.section>
       </div>
     </motion.div>
+    </>
   );
 }
 
