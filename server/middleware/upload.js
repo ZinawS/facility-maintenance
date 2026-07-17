@@ -2,8 +2,9 @@ const multer = require("multer");
 const path = require("path");
 const crypto = require("crypto");
 const fs = require("fs");
+const env = require("../config/env");
 
-const uploadDir = path.join(__dirname, "..", "uploads");
+const uploadDir = env.uploadDir;
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const ALLOWED_MIME_TYPES = new Set([

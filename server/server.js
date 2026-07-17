@@ -69,7 +69,7 @@ app.use(express.json({ limit: "1mb" }));
 // browser from rendering them even though the request itself succeeds.
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "uploads"), {
+  express.static(env.uploadDir, {
     setHeaders: (res) => res.setHeader("Cross-Origin-Resource-Policy", "cross-origin"),
   })
 );

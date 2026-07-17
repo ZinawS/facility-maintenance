@@ -1,3 +1,4 @@
+const path = require("path");
 require("dotenv").config();
 
 const REQUIRED_VARS = [
@@ -56,4 +57,11 @@ module.exports = {
     email: process.env.NODEMAILER_EMAIL || null,
     pass: process.env.NODEMAILER_PASS || null,
   },
+  // Configurable so production deploys can point uploads outside the
+  // git-managed app directory — a redeploy that resets the app root to
+  // match the repo (fresh clone, rsync mirror, hPanel's Git auto-deploy)
+  // would otherwise silently wipe every previously uploaded file.
+  uploadDir: process.env.UPLOAD_DIR
+    ? path.resolve(process.env.UPLOAD_DIR)
+    : path.join(__dirname, "..", "uploads"),
 };
