@@ -1,5 +1,10 @@
 const path = require("path");
-require("dotenv").config();
+// Explicit path, not the default cwd-relative lookup: some process
+// managers (e.g. Hostinger's LiteSpeed Node app runner) launch the app
+// with its cwd set to the app root rather than this file's directory,
+// which made dotenv silently find nothing and fall through to whatever
+// the platform happened to inject directly into process.env.
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const REQUIRED_VARS = [
   "DB_HOST",
