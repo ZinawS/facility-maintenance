@@ -7,7 +7,11 @@ const handleValidation = require("../middleware/handleValidation");
 const { getPagination, buildMeta } = require("../utils/paginate");
 const { sendMail } = require("../config/mailer");
 const { cancelOrder } = require("../utils/orders");
+const { ensureInvoice, generateInvoicePdf } = require("../utils/invoices");
+const { getSettingsMap } = require("../utils/settings");
 const logger = require("../config/logger");
+
+const INVOICEABLE_STATUSES = ["succeeded", "refunded"];
 
 const router = express.Router();
 
@@ -79,6 +83,39 @@ router.get(
       [limit, offset]
     );
     res.json({ data: payments, meta: buildMeta({ page, limit }, total) });
+  })
+);
+
+/**
+ * @route GET /api/admin/payments/:id/invoice
+ */
+router.get(
+  "/payments/:id/invoice",
+  [param("id").isInt()],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const [rows] = await req.db.query(
+      "SELECT p.*, u.name AS customer_name, u.email AS customer_email FROM payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.id = ?",
+      [req.params.id]
+    );
+    const payment = rows[0];
+    if (!payment) return res.status(404).json({ message: "Order not found" });
+    if (!INVOICEABLE_STATUSES.includes(payment.status)) {
+      return res.status(400).json({ message: "No invoice available for this order yet" });
+    }
+
+    const invoice = await ensureInvoice(req.db, payment);
+    const settings = await getSettingsMap(req.db);
+    const pdf = await generateInvoicePdf({
+      invoice,
+      payment,
+      customer: { name: payment.customer_name, email: payment.customer_email },
+      settings,
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${invoice.invoice_number}.pdf"`);
+    res.send(pdf);
   })
 );
 

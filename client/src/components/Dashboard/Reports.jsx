@@ -17,6 +17,7 @@ import { BarChart3, Download, TrendingUp } from "lucide-react";
 import apiService from "../../services/api";
 import Spinner from "../UI/Spinner";
 import EmptyState from "../UI/EmptyState";
+import { downloadBlob } from "../../utils/downloadBlob";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const daysAgoISO = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
@@ -39,17 +40,6 @@ const EXPORTS = [
   { type: "contact-messages", label: "Contact Messages" },
   { type: "users", label: "Users" },
 ];
-
-function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
 
 function Reports() {
   const [from, setFrom] = useState(daysAgoISO(30));

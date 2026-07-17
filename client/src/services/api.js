@@ -132,6 +132,14 @@ const apiService = {
   getMyPayments: () => request(api.get("/api/client/payments"), "Failed to fetch order history"),
   cancelOrder: (id, reason) =>
     request(api.put(`/api/client/payments/${id}/cancel`, { reason }), "Failed to cancel order"),
+  async downloadMyInvoice(id) {
+    try {
+      const response = await api.get(`/api/client/payments/${id}/invoice`, { responseType: "blob" });
+      return response.data;
+    } catch {
+      throw new Error("Failed to download invoice");
+    }
+  },
   submitFeedback: (feedbackData) =>
     request(api.post("/api/client/feedback", feedbackData), "Failed to submit feedback"),
   submitContact: (contactData) =>
@@ -150,6 +158,14 @@ const apiService = {
   getPayments: (params) => request(api.get("/api/admin/payments", { params }), "Failed to fetch payments"),
   updateOrderStatus: (id, data) =>
     request(api.put(`/api/admin/payments/${id}/status`, data), "Failed to update order status"),
+  async downloadInvoice(id) {
+    try {
+      const response = await api.get(`/api/admin/payments/${id}/invoice`, { responseType: "blob" });
+      return response.data;
+    } catch {
+      throw new Error("Failed to download invoice");
+    }
+  },
   getServiceRequests: (params) =>
     request(api.get("/api/admin/service-requests", { params }), "Failed to fetch service requests"),
   respondToServiceRequest: (id, data) =>

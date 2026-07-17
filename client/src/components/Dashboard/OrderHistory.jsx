@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Receipt, Truck, XCircle } from "lucide-react";
+import { Receipt, Truck, XCircle, FileDown } from "lucide-react";
 import apiService from "../../services/api";
 import Button from "../UI/Button";
 import Spinner from "../UI/Spinner";
 import EmptyState from "../UI/EmptyState";
+import { downloadBlob } from "../../utils/downloadBlob";
+
+const INVOICEABLE = ["succeeded", "refunded"];
 
 const STATUS_STYLES = {
   succeeded: "bg-green-100 text-green-800",
@@ -35,6 +38,7 @@ function OrderHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelingId, setCancelingId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const load = () => {
     apiService
@@ -58,6 +62,18 @@ function OrderHistory() {
       setError(err.message || "Failed to cancel order");
     } finally {
       setCancelingId(null);
+    }
+  };
+
+  const handleDownloadInvoice = async (order) => {
+    setDownloadingId(order.id);
+    try {
+      const blob = await apiService.downloadMyInvoice(order.id);
+      downloadBlob(blob, `invoice-order-${order.id}.pdf`);
+    } catch (err) {
+      setError(err.message || "Failed to download invoice");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -113,16 +129,28 @@ function OrderHistory() {
                 <p className="text-gray-400 text-xs mb-2">Awaiting payment confirmation.</p>
               )}
 
-              {CANCELABLE.includes(order.fulfillment_status) && (
-                <Button
-                  onClick={() => handleCancel(order)}
-                  disabled={cancelingId === order.id}
-                  className="mt-2 bg-red-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 disabled:opacity-60"
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  {cancelingId === order.id ? "Canceling..." : "Cancel Order"}
-                </Button>
-              )}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {INVOICEABLE.includes(order.status) && (
+                  <Button
+                    onClick={() => handleDownloadInvoice(order)}
+                    disabled={downloadingId === order.id}
+                    className="bg-primary text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 disabled:opacity-60"
+                  >
+                    <FileDown className="w-3.5 h-3.5" />
+                    {downloadingId === order.id ? "Downloading..." : "Invoice"}
+                  </Button>
+                )}
+                {CANCELABLE.includes(order.fulfillment_status) && (
+                  <Button
+                    onClick={() => handleCancel(order)}
+                    disabled={cancelingId === order.id}
+                    className="bg-red-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 disabled:opacity-60"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    {cancelingId === order.id ? "Canceling..." : "Cancel Order"}
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </div>

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { DollarSign, Send, Truck } from "lucide-react";
+import { DollarSign, Send, Truck, FileDown } from "lucide-react";
 import EmptyState from "../UI/EmptyState";
 import Button from "../UI/Button";
 import apiService from "../../services/api";
+import { downloadBlob } from "../../utils/downloadBlob";
+
+const INVOICEABLE = ["succeeded", "refunded"];
 
 const FULFILLMENT_OPTIONS = ["pending", "accepted", "processing", "shipped", "delivered", "canceled"];
 const STATUS_STYLES = {
@@ -37,8 +40,21 @@ function PaymentsList({ payments, setPayments }) {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [saving, setSaving] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const handleDownloadInvoice = async (payment) => {
+    setDownloadingId(payment.id);
+    try {
+      const blob = await apiService.downloadInvoice(payment.id);
+      downloadBlob(blob, `invoice-order-${payment.id}.pdf`);
+    } catch (err) {
+      setError(err.message || "Failed to download invoice");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const openEdit = (payment) => {
     setOpenId(payment.id);
@@ -190,12 +206,24 @@ function PaymentsList({ payments, setPayments }) {
                 </div>
               </form>
             ) : (
-              <Button
-                onClick={() => openEdit(payment)}
-                className="mt-2 bg-teal-500 text-white px-3 py-1.5 rounded text-sm"
-              >
-                Update Status
-              </Button>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Button
+                  onClick={() => openEdit(payment)}
+                  className="bg-teal-500 text-white px-3 py-1.5 rounded text-sm"
+                >
+                  Update Status
+                </Button>
+                {INVOICEABLE.includes(payment.status) && (
+                  <Button
+                    onClick={() => handleDownloadInvoice(payment)}
+                    disabled={downloadingId === payment.id}
+                    className="bg-primary text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 disabled:opacity-60"
+                  >
+                    <FileDown className="w-3.5 h-3.5" />
+                    {downloadingId === payment.id ? "Downloading..." : "Invoice"}
+                  </Button>
+                )}
+              </div>
             )}
           </motion.div>
         ))}

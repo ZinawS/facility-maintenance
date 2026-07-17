@@ -6,6 +6,9 @@ const { optionalAuth } = require("../middleware/auth");
 const env = require("../config/env");
 const logger = require("../config/logger");
 const stripe = require("../config/stripe");
+const { ensureInvoice, generateInvoicePdf } = require("../utils/invoices");
+const { getSettingsMap } = require("../utils/settings");
+const { sendMail } = require("../config/mailer");
 
 const router = express.Router();
 const webhookRouter = express.Router();
@@ -190,6 +193,39 @@ webhookRouter.post(
         "UPDATE payments SET status = ? WHERE stripe_payment_intent_id = ?",
         [nextStatus, intent.id]
       );
+
+      if (nextStatus === "succeeded") {
+        // Best-effort: a failure here shouldn't fail the webhook response
+        // (Stripe retries on non-2xx), since the payment itself is already
+        // recorded — the invoice can still be generated on demand later.
+        try {
+          const [rows] = await req.db.query(
+            `SELECT p.*, u.name AS customer_name, u.email AS customer_email
+             FROM payments p LEFT JOIN users u ON p.user_id = u.id
+             WHERE p.stripe_payment_intent_id = ?`,
+            [intent.id]
+          );
+          const payment = rows[0];
+          if (payment?.customer_email) {
+            const invoice = await ensureInvoice(req.db, payment);
+            const settings = await getSettingsMap(req.db);
+            const pdf = await generateInvoicePdf({
+              invoice,
+              payment,
+              customer: { name: payment.customer_name, email: payment.customer_email },
+              settings,
+            });
+            await sendMail({
+              to: payment.customer_email,
+              subject: `Your invoice ${invoice.invoice_number}`,
+              html: `<p>Hi ${payment.customer_name || "there"},</p><p>Thanks for your order! Your invoice is attached.</p>`,
+              attachments: [{ filename: `${invoice.invoice_number}.pdf`, content: pdf }],
+            });
+          }
+        } catch (err) {
+          logger.error({ err }, "Failed to generate/send invoice after payment success");
+        }
+      }
     }
 
     res.json({ received: true });

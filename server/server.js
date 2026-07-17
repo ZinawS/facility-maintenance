@@ -47,6 +47,15 @@ app.use(
 
 app.use(generalLimiter);
 
+// Provide the DB pool to every route via req.db — mounted before the
+// webhook route below, which needs it too (it was previously mounted
+// after this and silently ran with req.db undefined, masked because the
+// "webhook not configured" early-return always fired first).
+app.use((req, res, next) => {
+  req.db = pool;
+  next();
+});
+
 // Stripe webhook needs the raw request body for signature verification, so
 // it's mounted before the global JSON body parser.
 app.use("/api/payments", paymentsWebhookRouter);
@@ -63,12 +72,6 @@ app.use(
     setHeaders: (res) => res.setHeader("Cross-Origin-Resource-Policy", "cross-origin"),
   })
 );
-
-// Provide the DB pool to every route via req.db.
-app.use((req, res, next) => {
-  req.db = pool;
-  next();
-});
 
 app.get("/api/health", async (req, res) => {
   try {

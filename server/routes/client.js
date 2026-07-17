@@ -5,6 +5,10 @@ const asyncHandler = require("../middleware/asyncHandler");
 const handleValidation = require("../middleware/handleValidation");
 const logger = require("../config/logger");
 const { cancelOrder, CANCELABLE_FULFILLMENT_STATUSES } = require("../utils/orders");
+const { ensureInvoice, generateInvoicePdf } = require("../utils/invoices");
+const { getSettingsMap } = require("../utils/settings");
+
+const INVOICEABLE_STATUSES = ["succeeded", "refunded"];
 
 const router = express.Router();
 
@@ -53,6 +57,40 @@ router.get(
       [req.user.id]
     );
     res.json(payments);
+  })
+);
+
+/**
+ * @route GET /api/client/payments/:id/invoice
+ */
+router.get(
+  "/payments/:id/invoice",
+  auth,
+  [param("id").isInt()],
+  handleValidation,
+  asyncHandler(async (req, res) => {
+    const [rows] = await req.db.query(
+      "SELECT p.*, u.name AS customer_name, u.email AS customer_email FROM payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.id = ? AND p.user_id = ?",
+      [req.params.id, req.user.id]
+    );
+    const payment = rows[0];
+    if (!payment) return res.status(404).json({ message: "Order not found" });
+    if (!INVOICEABLE_STATUSES.includes(payment.status)) {
+      return res.status(400).json({ message: "No invoice available for this order yet" });
+    }
+
+    const invoice = await ensureInvoice(req.db, payment);
+    const settings = await getSettingsMap(req.db);
+    const pdf = await generateInvoicePdf({
+      invoice,
+      payment,
+      customer: { name: payment.customer_name, email: payment.customer_email },
+      settings,
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${invoice.invoice_number}.pdf"`);
+    res.send(pdf);
   })
 );
 
