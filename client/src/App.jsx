@@ -23,6 +23,7 @@ const Testimonials = lazy(() => import('./pages/Testimonials'));
 const FAQ = lazy(() => import('./pages/FAQ'));
 const ServicePlans = lazy(() => import('./pages/ServicePlans'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
+const LegalDocument = lazy(() => import('./pages/LegalDocument'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 /**
@@ -65,6 +66,7 @@ function App() {
               <Route path="/faq" element={<FAQ />} />
               <Route path="/service-plans" element={<ServicePlans />} />
               <Route path="/knowledge-base" element={<KnowledgeBase />} />
+              <Route path="/legal/:type" element={<LegalDocument />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

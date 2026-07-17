@@ -176,6 +176,11 @@ const apiService = {
     request(api.get("/api/public/feedback/approved"), "Failed to fetch approved feedback"),
   getPublicBlogs: () => request(api.get("/api/public/blogs"), "Failed to fetch blogs"),
   getSiteSettings: () => request(api.get("/api/public/settings"), "Failed to fetch site settings"),
+  getLegalDocument: (type) => request(api.get(`/api/public/legal/${type}`), "Failed to fetch document"),
+  getLegalDocumentAdmin: (type) =>
+    request(api.get(`/api/admin/legal/${type}`), "Failed to fetch document"),
+  updateLegalDocument: (type, data) =>
+    request(api.put(`/api/admin/legal/${type}`, data), "Failed to save document"),
 
   // --- Admin-managed content resources ---
   getServices: servicesApi.list,

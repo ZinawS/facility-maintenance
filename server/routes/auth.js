@@ -13,15 +13,25 @@ const router = express.Router();
 
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+const passwordValidator = (field = "password") =>
+  body(field)
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters long")
+    .matches(PASSWORD_RULE)
+    .withMessage("Password must include an uppercase letter, a lowercase letter, and a number");
+
 router.post(
   "/register",
   authLimiter,
   [
     body("name").isString().trim().isLength({ min: 1, max: 150 }).withMessage("Name is required"),
     body("email").isEmail().normalizeEmail().withMessage("A valid email is required"),
-    body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters long"),
+    passwordValidator(),
+    body("acceptedTerms")
+      .isBoolean()
+      .custom((value) => value === true)
+      .withMessage("You must accept the Terms & Conditions and Disclaimer to register"),
   ],
   handleValidation,
   asyncHandler(async (req, res) => {
@@ -30,11 +40,34 @@ router.post(
     if (existingUser.length) {
       return res.status(400).json({ message: "Email already exists" });
     }
+
+    const [documents] = await req.db.query(
+      "SELECT type, version FROM legal_documents WHERE type IN ('terms', 'disclaimer') AND is_published = 1"
+    );
+    if (documents.length < 2) {
+      // Both documents must be published for registration to proceed — an
+      // admin has unpublished one, which shouldn't normally happen, but
+      // failing loudly here is safer than registering someone without a
+      // recorded acceptance of both.
+      return res.status(503).json({ message: "Registration is temporarily unavailable. Please try again shortly." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
-    await req.db.query(
+    const [result] = await req.db.query(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
       [name, email, hashedPassword, "client"]
     );
+
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress;
+    await Promise.all(
+      documents.map((doc) =>
+        req.db.query(
+          "INSERT INTO legal_acceptances (user_id, document_type, document_version, ip_address) VALUES (?, ?, ?, ?)",
+          [result.insertId, doc.type, doc.version, ip]
+        )
+      )
+    );
+
     res.status(201).json({ success: true });
   })
 );
@@ -98,10 +131,7 @@ router.post(
 router.post(
   "/reset-password",
   authLimiter,
-  [
-    body("token").notEmpty().withMessage("Token is required"),
-    body("password").isLength({ min: 8 }).withMessage("Password must be at least 8 characters long"),
-  ],
+  [body("token").notEmpty().withMessage("Token is required"), passwordValidator()],
   handleValidation,
   asyncHandler(async (req, res) => {
     const { token, password } = req.body;

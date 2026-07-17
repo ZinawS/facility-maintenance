@@ -179,8 +179,16 @@ function Footer() {
         custom={quickLinks.length + 8}
         className="text-center mt-12 border-t border-teal-500/30 pt-6"
       >
-        <p className="text-gray-300 text-sm">
+        <p className="text-gray-300 text-sm mb-2">
           &copy; {new Date().getFullYear()} One-Stop Utility Service. All rights reserved.
+        </p>
+        <p className="text-sm space-x-4">
+          <Link to="/legal/terms" className="text-gray-400 hover:text-teal-300 transition-colors duration-300">
+            Terms &amp; Conditions
+          </Link>
+          <Link to="/legal/disclaimer" className="text-gray-400 hover:text-teal-300 transition-colors duration-300">
+            Disclaimer
+          </Link>
         </p>
       </motion.div>
 

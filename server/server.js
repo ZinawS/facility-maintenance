@@ -18,6 +18,7 @@ const adminRoutes = require("./routes/admin");
 const publicRoutes = require("./routes/public");
 const reportsRoutes = require("./routes/reports");
 const { router: paymentsRoutes, webhookRouter: paymentsWebhookRouter } = require("./routes/payments");
+const { publicRouter: legalPublicRoutes, adminRouter: legalAdminRoutes } = require("./routes/legal");
 
 const app = express();
 
@@ -84,6 +85,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/admin/reports", reportsRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/public/legal", legalPublicRoutes);
+app.use("/api/admin/legal", legalAdminRoutes);
 mountContentRoutes(app);
 
 app.use(notFound);

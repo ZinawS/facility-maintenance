@@ -1,45 +1,51 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Lock, AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import apiService from "../../services/api";
 import Button from "../UI/Button";
+import Spinner from "../UI/Spinner";
+import PasswordInput from "../UI/PasswordInput";
+import PasswordStrengthMeter from "../UI/PasswordStrengthMeter";
+import { getPasswordStrength } from "../../utils/passwordStrength";
 
 /**
  * ResetPassword component for resetting user password
  * @returns {JSX.Element} The rendered ResetPassword component
  */
 function ResetPassword() {
-  // State for form inputs and feedback
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { token } = useParams();
   const navigate = useNavigate();
 
-  /**
-   * Handle form submission for password reset
-   * @param {Event} e - Form submission event
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
+    if (!getPasswordStrength(password).meetsRequirement) {
+      setError("Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number");
+      return;
+    }
+    setSubmitting(true);
     try {
       const response = await apiService.resetPassword(token, password);
       setMessage(response.message);
       setError("");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      setError("Failed to reset password");
+      setError(err.message || "Failed to reset password");
       setMessage("");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // Animation variants for form entrance
   const formVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -82,53 +88,39 @@ function ResetPassword() {
         </motion.p>
       )}
       <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="relative">
-          <label
-            className="block text-gray-700 font-medium mb-2"
-            htmlFor="password"
-          >
+        <div>
+          <label className="block text-gray-700 font-medium mb-2" htmlFor="password">
             New Password
           </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-300 w-5 h-5" />
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all duration-300"
-              required
-              aria-label="New Password"
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            accentClass="text-teal-400"
+          />
+          <PasswordStrengthMeter password={password} />
         </div>
-        <div className="relative">
-          <label
-            className="block text-gray-700 font-medium mb-2"
-            htmlFor="confirmPassword"
-          >
+        <div>
+          <label className="block text-gray-700 font-medium mb-2" htmlFor="confirmPassword">
             Confirm Password
           </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-300 w-5 h-5" />
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all duration-300"
-              required
-              aria-label="Confirm Password"
-            />
-          </div>
+          <PasswordInput
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            autoComplete="new-password"
+            accentClass="text-teal-400"
+          />
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <motion.div whileHover={{ scale: submitting ? 1 : 1.05 }} whileTap={{ scale: submitting ? 1 : 0.95 }}>
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-teal-500/50"
+            disabled={submitting}
+            className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-teal-500/50 disabled:opacity-60"
             aria-label="Reset Password"
           >
-            Reset Password
+            {submitting ? <Spinner size="sm" /> : "Reset Password"}
           </Button>
         </motion.div>
       </form>

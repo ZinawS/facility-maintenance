@@ -25,6 +25,7 @@ import ContactMessagesList from "./ContactMessagesList";
 import FeedbackApproval from "./FeedbackApproval";
 import ResourceManager from "./ResourceManager";
 import SiteSettingsPanel from "./SiteSettingsPanel";
+import LegalDocumentsPanel from "./LegalDocumentsPanel";
 import Reports from "./Reports";
 import AlertsPanel from "./AlertsPanel";
 import Spinner from "../UI/Spinner";
@@ -317,6 +318,7 @@ function AdminDashboard() {
               />
               <BlogManagement blogs={blogs} setBlogs={setBlogs} setSuccess={setSuccess} setError={setError} />
               <SiteSettingsPanel />
+              <LegalDocumentsPanel />
             </>
           )}
 

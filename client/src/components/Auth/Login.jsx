@@ -1,11 +1,12 @@
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, AlertCircle } from "lucide-react";
+import { Mail, AlertCircle } from "lucide-react";
 import apiService from "../../services/api";
 import { AuthContext } from "../../context/AuthContext";
 import Button from "../UI/Button";
 import Spinner from "../UI/Spinner";
+import PasswordInput from "../UI/PasswordInput";
 
 /**
  * Login component for user authentication
@@ -85,25 +86,19 @@ function Login() {
             />
           </div>
         </div>
-        <div className="relative">
+        <div>
           <label
             className="block text-gray-700 font-medium mb-2"
             htmlFor="password"
           >
             Password
           </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary w-5 h-5" />
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300"
-              required
-              aria-label="Password"
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
         </div>
         <motion.div whileHover={{ scale: submitting ? 1 : 1.05 }} whileTap={{ scale: submitting ? 1 : 0.95 }}>
           <Button
@@ -118,23 +113,21 @@ function Login() {
       </form>
       <div className="mt-6 text-center space-y-2">
         <p>
-          <a
-            href="/forgot-password"
+          <Link
+            to="/forgot-password"
             className="text-primary hover:text-primary/80 transition-colors duration-300 hover:underline"
-            aria-label="Forgot Password"
           >
             Forgot Password?
-          </a>
+          </Link>
         </p>
         <p>
           Don't have an account?{" "}
-          <a
-            href="/register"
+          <Link
+            to="/register"
             className="text-primary hover:text-primary/80 transition-colors duration-300 hover:underline"
-            aria-label="Register"
           >
             Register
-          </a>
+          </Link>
         </p>
       </div>
     </motion.div>

@@ -1,40 +1,47 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Mail, Lock, AlertCircle } from "lucide-react";
+import { User, Mail, AlertCircle } from "lucide-react";
 import apiService from "../../services/api";
 import Button from "../UI/Button";
 import Spinner from "../UI/Spinner";
+import PasswordInput from "../UI/PasswordInput";
+import PasswordStrengthMeter from "../UI/PasswordStrengthMeter";
+import { getPasswordStrength } from "../../utils/passwordStrength";
 
 /**
  * Register component for user registration
  * @returns {JSX.Element} The rendered Register component
  */
 function Register() {
-  // State for form inputs and error
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  /**
-   * Handle form submission for user registration
-   * @param {Event} e - Form submission event
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
+    if (!getPasswordStrength(formData.password).meetsRequirement) {
+      setError("Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number");
+      return;
+    }
+    if (!acceptedTerms) {
+      setError("You must agree to the Terms & Conditions and Disclaimer to register");
+      return;
+    }
     setSubmitting(true);
     try {
-      await apiService.register(formData);
+      await apiService.register({ ...formData, acceptedTerms });
       navigate("/login");
     } catch (err) {
       setError(err.message || "Registration failed");
@@ -43,15 +50,10 @@ function Register() {
     }
   };
 
-  /**
-   * Handle input changes for form fields
-   * @param {Event} e - Input change event
-   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Animation variants for form entrance
   const formVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -85,10 +87,7 @@ function Register() {
       )}
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="relative">
-          <label
-            className="block text-gray-700 font-medium mb-2"
-            htmlFor="name"
-          >
+          <label className="block text-gray-700 font-medium mb-2" htmlFor="name">
             Name
           </label>
           <div className="relative">
@@ -101,15 +100,12 @@ function Register() {
               onChange={handleChange}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all duration-300"
               required
-              aria-label="Full name"
+              autoComplete="name"
             />
           </div>
         </div>
         <div className="relative">
-          <label
-            className="block text-gray-700 font-medium mb-2"
-            htmlFor="email"
-          >
+          <label className="block text-gray-700 font-medium mb-2" htmlFor="email">
             Email
           </label>
           <div className="relative">
@@ -122,57 +118,62 @@ function Register() {
               onChange={handleChange}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all duration-300"
               required
-              aria-label="Email address"
+              autoComplete="email"
             />
           </div>
         </div>
-        <div className="relative">
-          <label
-            className="block text-gray-700 font-medium mb-2"
-            htmlFor="password"
-          >
+        <div>
+          <label className="block text-gray-700 font-medium mb-2" htmlFor="password">
             Password
           </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-300 w-5 h-5" />
-            <input
-              id="password"
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all duration-300"
-              required
-              aria-label="Password"
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            autoComplete="new-password"
+            accentClass="text-teal-400"
+          />
+          <PasswordStrengthMeter password={formData.password} />
         </div>
-        <div className="relative">
-          <label
-            className="block text-gray-700 font-medium mb-2"
-            htmlFor="confirmPassword"
-          >
+        <div>
+          <label className="block text-gray-700 font-medium mb-2" htmlFor="confirmPassword">
             Confirm Password
           </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-300 w-5 h-5" />
-            <input
-              id="confirmPassword"
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all duration-300"
-              required
-              aria-label="Confirm Password"
-            />
-          </div>
+          <PasswordInput
+            id="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            autoComplete="new-password"
+            accentClass="text-teal-400"
+          />
         </div>
+
+        <label className="flex items-start gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            className="mt-1"
+            required
+          />
+          <span>
+            I have read and agree to the{" "}
+            <Link to="/legal/terms" target="_blank" className="text-teal-600 hover:underline font-medium">
+              Terms &amp; Conditions
+            </Link>{" "}
+            and{" "}
+            <Link to="/legal/disclaimer" target="_blank" className="text-teal-600 hover:underline font-medium">
+              Disclaimer
+            </Link>
+            .
+          </span>
+        </label>
+
         <motion.div whileHover={{ scale: submitting ? 1 : 1.05 }} whileTap={{ scale: submitting ? 1 : 0.95 }}>
           <Button
             type="submit"
-            disabled={submitting}
-            className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-teal-500/50"
+            disabled={submitting || !acceptedTerms}
+            className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-teal-500/50 disabled:opacity-60"
             aria-label="Register"
           >
             {submitting ? <Spinner size="sm" /> : "Register"}
